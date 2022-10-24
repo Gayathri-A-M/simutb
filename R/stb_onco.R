@@ -1,37 +1,3 @@
-#' Simulate Enrollment Time
-#'
-#' @inheritParams stb_simu_trial_single
-#'
-#' @export
-#'
-stb_simu_enroll <- function(ntot, enroll_duration, min_fu = 6,
-                            date_bos = NULL, mth_to_days = 30.4) {
-    rand_enroll <- runif(ntot, 0, enroll_duration)
-    day_enroll  <- floor(rand_enroll * mth_to_days)
-
-    rst <- data.frame(sid        = seq_len(ntot),
-                      day_enroll = day_enroll)
-
-    ## set up end of study time by minimum follow up
-    if (!is.null(min_fu)) {
-        day_eos     <- max(rand_enroll) + min_fu
-        day_eos     <- day_eos * mth_to_days
-        day_eos     <- floor(day_eos)
-        rst$day_eos <- day_eos - day_enroll
-    }
-
-
-    ## set up dates in addition to days
-    if (!is.null(date_bos)) {
-        rst$date_bos    <- date_bos
-        rst$date_eos    <- date_bos + day_eos
-        rst$date_enroll <- date_bos + day_enroll
-    }
-
-    ## return
-    rst
-}
-
 #' Simulate Overall Response
 #'
 #' @inheritParams stb_simu_trial_single
@@ -123,8 +89,8 @@ stb_simu_trial_single <- function(ntot, enroll_duration,
                                   annual_drop     = 0.05) {
 
     ## enrollment
-    dta_enroll <- stb_simu_enroll(ntot, enroll_duration,
-                                  date_bos = date_bos, min_fu = min_fu)
+    dta_enroll <- stb_tl_simu_enroll(ntot, enroll_duration,
+                                     date_bos = date_bos, min_fu = min_fu)
 
     ## overall response
     dta_or     <- stb_simu_or(dta_enroll, p_or = p_or)
@@ -174,4 +140,45 @@ stb_simu_trials <- function(nreps = 100,
                               }, mc.cores = n_cores)
 
     rst
+}
+
+
+#' Simulate from piecewise constant exponential
+#'
+#'
+#' @examples
+#' rd_sim_pwexp(hazards = c("0.5" = 0.045, "Inf" = 0.025), offset = 0)
+#'
+#' @export
+#'
+stb_simu_pwexp <- function(hazards, offset = 0) {
+    if (1 == length(hazards)) {
+        tte <- rexp(1,  hazards)
+    } else {
+        segments <- as.numeric(names(hazards))
+        segments <- sort(segments) - offset
+
+        inx    <- min(which(segments > 0))
+        cur_t  <- 0
+        flag   <- FALSE
+        while (!flag) {
+            cur_h   <- hazards[inx]
+            cur_int <- rexp(1, cur_h)
+
+            if ((cur_t + cur_int) <= segments[inx]) {
+                flag <- TRUE
+                tte  <- cur_t + cur_int
+                break
+            }
+
+            cur_int <- segments[inx]
+            inx     <- inx + 1
+        }
+    }
+
+    ## return
+    rst <- c(tte    = tte,
+             offset = offset)
+
+    return(rst)
 }

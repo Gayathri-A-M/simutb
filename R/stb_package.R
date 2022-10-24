@@ -21,8 +21,8 @@
 #' @importFrom rpact getDesignGroupSequential
 #' @importFrom mvtnorm rmvnorm pmvnorm
 #'
-#' @description
-#'
-#' @references
 #'
 NULL
+
+## #' @description
+## #' @references

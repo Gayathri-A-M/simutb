@@ -11,9 +11,3 @@
 \alias{=}
 \alias{TRUE}
 \title{The 'simutb' package.}
-\description{
-
-}
-\references{
-
-}
