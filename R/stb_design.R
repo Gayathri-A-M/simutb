@@ -66,6 +66,10 @@ stb_design_surv_join <- function(info_frac       = c(0.3, 0.7, 1),
     if (is.null(bound_second))
         bound_second  <- rep(alpha, length(bound_primary))
 
+    pval_bounds <- cbind(bound_primary, bound_second)
+
+    colnames(pval_bounds) <- unique(c(primary, c("os", "pfs")))
+
     ## reset
     if (!is.null(seed))
         set.seed(old_seed)

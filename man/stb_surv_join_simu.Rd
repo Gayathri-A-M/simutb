@@ -4,7 +4,7 @@
 \alias{stb_surv_join_simu}
 \title{Simulate OS and PFS by Copula and Exponential}
 \usage{
-stb_surv_join_simu(n, hazard_os, hazard_prog, rho, seed = NULL)
+stb_surv_join_simu(n, hazard_os, hazard_prog, rho, rnd_cdf = NULL, seed = NULL)
 }
 \arguments{
 \item{n}{sample size}

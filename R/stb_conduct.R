@@ -31,14 +31,12 @@ stb_conduct_surv_join <- function(lst_design,
             annual_drop    = lst_design$annual_drop,
             total_events   = lst_design$target_primary,
             info_frac      = lst_design$info_frac,
-            primary_event  = lst_design$primary,
+            primary        = lst_design$primary,
             seed           = all_seeds[k])
 
         rst_rej <- stb_surv_join_trial_hiertest(
             rst_interim,
-            pval_bounds = cbind(
-                os  = lst_design$bound_primary,
-                pfs = lst_design$bound_second))
+            pval_bounds = lst_design$pval_bounds)
 
         rst_rej$rep <- k
         rst_rej
@@ -93,11 +91,12 @@ stb_conduct_surv_join <- function(lst_design,
                               kendall_trt    = lst_design$par_trt$kendall,
                               zscore_cor     = rst_summary$zscore_cor,
                               rej_os         = f_rej("os"),
-                              rej_pfs        = f_rej("pfs"))
+                              rej_pfs        = f_rej("pfs"),
+                              seed           = seed)
     ## reset
     if (!is.null(seed))
         set.seed(old_seed)
 
-    list(rst_raw = rst_summary,
-         rst_key = rst_key)
+    list(rst_summary = rst_summary,
+         rst_key     = rst_key)
 }

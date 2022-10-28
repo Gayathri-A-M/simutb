@@ -25,7 +25,8 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
 
     ## optimization target function
     f_opt <- function(l) {
-        t_pfs <- stb_surv_join_simu(nsim, hazard_os, l, rho, seed = seed)
+        t_pfs <- stb_surv_join_simu(nsim, hazard_os, l, rho,
+                                    rnd_cdf = rnd_cdf)
         t_pfs <- t_pfs[, "t_pfs"]
 
         ## squared loss
@@ -38,10 +39,15 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
         rst
     }
 
+    if (!is.null(seed))
+        old_seed <- set.seed(seed)
+
+
     ## hazard os
     hazard_os <- stb_tl_hazard(median_surv = median_os)
 
     ## optimization
+    rnd_cdf     <- stb_tl_binorm(nsim, rho)$rnd_cdf
     rst_optim   <- optimize(f_opt, interval = interval)
     hazard_prog <- rst_optim$minimum
 
@@ -50,6 +56,9 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
     est_cor <- cor.test(t_sim[, "t_pfs"],
                         t_sim[, "t_os"],
                         method = "kendall")$estimate
+
+    if (!is.null(seed))
+        set.seed(old_seed)
 
     rst <- list(median_os   = median_os,
                 median_pfs  = median_pfs,
@@ -75,7 +84,8 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
 #'
 #' @export
 #'
-stb_surv_join_simu <- function(n, hazard_os, hazard_prog, rho, seed = NULL) {
+stb_surv_join_simu <- function(n, hazard_os, hazard_prog, rho,
+                               rnd_cdf = NULL, seed = NULL) {
 
     ## inverse cdf for exponential
     f_exp <- function(c, lambda) {
@@ -85,17 +95,13 @@ stb_surv_join_simu <- function(n, hazard_os, hazard_prog, rho, seed = NULL) {
     if (!is.null(seed))
         old_seed <- set.seed(seed)
 
-    ## random bivariate normal samples
-    rnd_smp_1 <- rnorm(n)
-    rnd_smp_2 <- rho * rnd_smp_1 + sqrt(1 - rho^2) * rnorm(n)
-
-    ## random cdf
-    rnd_cdf_1  <- pnorm(rnd_smp_1)
-    rnd_cdf_2  <- pnorm(rnd_smp_2)
+    if (is.null(rnd_cdf)) {
+        rnd_cdf <- stb_tl_binorm(n, rho)$rnd_cdf
+    }
 
     ## time to os
-    t_os   <- f_exp(rnd_cdf_1, hazard_os)
-    t_prog <- f_exp(rnd_cdf_2, hazard_prog)
+    t_os   <- f_exp(rnd_cdf[, 1], hazard_os)
+    t_prog <- f_exp(rnd_cdf[, 2], hazard_prog)
     t_pfs  <- apply(cbind(t_prog, t_os), 1, min)
 
     ## reset
@@ -191,8 +197,8 @@ stb_surv_join_trial_simu <- function(ntrt,
 stb_surv_join_trial_interim <- function(...,
                                         total_events,
                                         info_frac,
-                                        primary_event = "os",
-                                        seed = NULL) {
+                                        primary = "os",
+                                        seed    = NULL) {
 
     if (!is.null(seed))
         old_seed <- set.seed(seed)
@@ -211,7 +217,7 @@ stb_surv_join_trial_interim <- function(...,
         data_interim <- stb_tl_interim_data_2arm(data_full,
                                                  total_events,
                                                  info_frac[i],
-                                                 event = primary_event)
+                                                 event = primary)
 
         test_os  <- stb_tl_surv_logrank(data = data_interim,
                                         fml = "Surv(day_os, status_os) ~ arm")
@@ -295,17 +301,30 @@ stb_surv_join_summary <- function(data_interim) {
     }
 
 
-    ## rejection probability
+    ## events
     rst_events <- data_interim %>%
         group_by(inx, info_frac) %>%
-        summarize(nevent_os = mean(nevent_os),
+        summarize(nevent_os  = mean(nevent_os),
                   nevent_pfs = mean(nevent_pfs))
 
+    ## marginal rejection
+    rst_rej_marginal <- data_interim %>%
+        gather(type, rej, rej_os, rej_pfs) %>%
+        group_by(inx, info_frac, type) %>%
+        summarize(rej = mean(rej))
+
+    ## rejection probability
     rst_os        <- f_rej(data_interim, "rej_os")
     rst_pfs       <- f_rej(data_interim, "rej_pfs")
 
     rst_os$event  <- "os"
     rst_pfs$event <- "pfs"
+
+    ## hazard ratio
+    mean_hr <- data_interim %>%
+        gather(type, hr, hr_os, hr_pfs) %>%
+        group_by(type, inx, info_frac) %>%
+        summarize(hr = mean(hr))
 
     ## effect size
     mean_zscore <- data_interim %>%
@@ -324,16 +343,18 @@ stb_surv_join_summary <- function(data_interim) {
 
     cor_matrix <- cor(cbind(z_os, z_pfs))
     rownames(cor_matrix) <- colnames(cor_matrix) <-
-        c(paste("os_",  seq_len(n_ana), seq = ""),
-          paste("pfs_", seq_len(n_ana), seq = ""))
+        c(paste("os_",  seq_len(n_ana), sep = ""),
+          paste("pfs_", seq_len(n_ana), sep = ""))
 
     ## correlation of z_primary and z_secondary
     cor_z <- cor(data_interim$zscore_os,
                  data_interim$zscore_pfs)
 
     ## return
-    list(rejection     = rbind(rst_os, rst_pfs),
+    list(rej_marginal  = rst_rej_marginal,
+         rejection     = rbind(rst_os, rst_pfs),
          nevents       = rst_events,
+         hr_mean       = mean_hr,
          zscore_mean   = mean_zscore,
          zscore_cormat = cor_matrix,
          zscore_cor    = cor_z)

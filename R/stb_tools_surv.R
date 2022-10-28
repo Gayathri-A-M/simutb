@@ -8,6 +8,22 @@
 ##
 ## -----------------------------------------------------------------------------
 
+#' Bivariate normal
+#'
+#' @export
+#'
+stb_tl_binorm <- function(n, rho) {
+    ## random bivariate normal samples
+    rnd_smp_1 <- rnorm(n)
+    rnd_smp_2 <- rho * rnd_smp_1 + sqrt(1 - rho^2) * rnorm(n)
+
+    ## random cdf
+    rnd_cdf_1  <- pnorm(rnd_smp_1)
+    rnd_cdf_2  <- pnorm(rnd_smp_2)
+
+    list(rnd_smp = cbind(rnd_smp_1, rnd_smp_2),
+         rnd_cdf = cbind(rnd_cdf_1, rnd_cdf_2))
+}
 
 #' Convert median survival or annual_drop to hazard
 #'
@@ -217,6 +233,7 @@ stb_tl_interim_data_2arm <- function(data,
                                      total_events,
                                      info_frac,
                                      event = "os") {
+
     v_date       <- paste("date_",   event, sep = "")
     v_status     <- paste("status_", event, sep = "")
     target_event <- floor(total_events * info_frac)
@@ -224,7 +241,7 @@ stb_tl_interim_data_2arm <- function(data,
     ## all events
     events       <- data %>%
         dplyr::filter((!!sym(v_status)) == 1) %>%
-        arrange(v_date)
+        arrange(!!sym(v_date))
 
     stopifnot(nrow(events) > target_event)
 
@@ -233,7 +250,7 @@ stb_tl_interim_data_2arm <- function(data,
 
     ## censor at interim
     rst <- data %>%
-        filter(date_enroll  <= date_interim) %>%
+        filter(date_enroll <= date_interim) %>%
         mutate(status_os = if_else(date_os <= date_interim,
                                    status_os,
                                    0),
@@ -249,6 +266,5 @@ stb_tl_interim_data_2arm <- function(data,
                day_pfs = date_pfs - date_enroll,
                day_os  = date_os - date_enroll
                )
-
     rst
 }

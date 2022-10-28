@@ -8,7 +8,7 @@ stb_surv_join_trial_interim(
   ...,
   total_events,
   info_frac,
-  primary_event = "os",
+  primary = "os",
   seed = NULL
 )
 }
