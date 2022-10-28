@@ -6,7 +6,7 @@
 \usage{
 stb_tl_rexp(
   ntot,
-  median_mth = 5,
+  median_mth = NULL,
   hazard = NULL,
   annual_drop = NULL,
   mth_to_days = 30.4,

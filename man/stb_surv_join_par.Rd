@@ -10,8 +10,8 @@ stb_surv_join_par(
   rho,
   nsim = 20000,
   interval = c(0, 10),
-  ...,
   verbose = 0,
+  ...,
   seed = 1000
 )
 }

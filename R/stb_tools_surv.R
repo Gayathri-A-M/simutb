@@ -38,7 +38,7 @@ stb_tl_hazard <- function(median_surv = NULL, annual_drop = NULL) {
 #' @export
 #'
 stb_tl_rexp <- function(ntot,
-                        median_mth   = 5,
+                        median_mth   = NULL,
                         hazard       = NULL,
                         annual_drop  = NULL,
                         mth_to_days  = 30.4,

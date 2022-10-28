@@ -7,6 +7,7 @@
 ##
 ## -----------------------------------------------------------------------------
 
+
 #' Calculate hazard and coefficient for simulation
 #'
 #' Calculate hazard using copula correlation
@@ -18,8 +19,8 @@
 #'
 stb_surv_join_par <- function(median_os, median_pfs, rho,
                               nsim = 20000, interval = c(0, 10),
-                              ...,
                               verbose = 0,
+                              ...,
                               seed = 1000) {
 
     ## optimization target function
@@ -41,7 +42,7 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
     hazard_os <- stb_tl_hazard(median_surv = median_os)
 
     ## optimization
-    rst_optim   <- optimize(f_opt, interval = interval, ...)
+    rst_optim   <- optimize(f_opt, interval = interval)
     hazard_prog <- rst_optim$minimum
 
     ## kendall's tau
@@ -55,7 +56,8 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
                 rho         = rho,
                 hazard_os   = hazard_os,
                 hazard_prog = hazard_prog,
-                kendall     = est_cor)
+                kendall     = est_cor,
+                optim_raw   = rst_optim)
 
     class(rst) <- "join_surv_par"
 
@@ -131,6 +133,8 @@ stb_surv_join_arm_simu <- function(n,
                                      simu_par$rho) * mth_to_days
 
     dta_censor <- stb_tl_rexp(n,
+                              median_mth  = NULL,
+                              hazard      = NULL,
                               annual_drop = annual_drop,
                               mth_to_days = mth_to_days)
 
@@ -163,7 +167,6 @@ stb_surv_join_trial_simu <- function(ntrt,
                                      annual_drop = 0.05,
                                      ...) {
 
-
     dta_trt <- stb_surv_join_arm_simu(n = ntrt, par_trt, enroll_dur_mth,
                                       annual_drop, ...)
 
@@ -195,6 +198,12 @@ stb_surv_join_trial_interim <- function(...,
         old_seed <- set.seed(seed)
 
     data_full <- stb_surv_join_trial_simu(...)
+
+    ## check
+    ## data_full %>%
+    ##     group_by(arm) %>%
+    ##     summarize(m_pfs = median(day_pfs) / 30.4,
+    ##               m_os  = median(day_os) / 30.4)
 
     ## interim analysis
     rst <- NULL
@@ -286,17 +295,46 @@ stb_surv_join_summary <- function(data_interim) {
     }
 
 
+    ## rejection probability
     rst_events <- data_interim %>%
         group_by(inx, info_frac) %>%
         summarize(nevent_os = mean(nevent_os),
                   nevent_pfs = mean(nevent_pfs))
 
-    rst_os  <- f_rej(data_interim, "rej_os")
-    rst_pfs <- f_rej(data_interim, "rej_pfs")
+    rst_os        <- f_rej(data_interim, "rej_os")
+    rst_pfs       <- f_rej(data_interim, "rej_pfs")
 
     rst_os$event  <- "os"
     rst_pfs$event <- "pfs"
 
-    list(rejection = rbind(rst_os, rst_pfs),
-         nevents   = rst_events)
+    ## effect size
+    mean_zscore <- data_interim %>%
+        gather(type, zscore, zscore_os, zscore_pfs) %>%
+        group_by(type, inx, info_frac) %>%
+        summarize(zscore = mean(zscore))
+
+    ## correlation matrix
+    n_ana <- max(data_interim$inx)
+    z_os <- matrix(data_interim$zscore_os,
+                   ncol  = n_ana,
+                   byrow =  TRUE)
+    z_pfs <- matrix(data_interim$zscore_pfs,
+                    ncol  = n_ana,
+                    byrow =  TRUE)
+
+    cor_matrix <- cor(cbind(z_os, z_pfs))
+    rownames(cor_matrix) <- colnames(cor_matrix) <-
+        c(paste("os_",  seq_len(n_ana), seq = ""),
+          paste("pfs_", seq_len(n_ana), seq = ""))
+
+    ## correlation of z_primary and z_secondary
+    cor_z <- cor(data_interim$zscore_os,
+                 data_interim$zscore_pfs)
+
+    ## return
+    list(rejection     = rbind(rst_os, rst_pfs),
+         nevents       = rst_events,
+         zscore_mean   = mean_zscore,
+         zscore_cormat = cor_matrix,
+         zscore_cor    = cor_z)
 }
