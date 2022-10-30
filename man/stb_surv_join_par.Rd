@@ -9,7 +9,7 @@ stb_surv_join_par(
   median_pfs,
   rho,
   nsim = 20000,
-  interval_ub = 0,
+  interval_ub = 2,
   verbose = 0,
   method = c("given.pfs", "given.os"),
   seed = 1000,

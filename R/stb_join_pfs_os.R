@@ -19,7 +19,7 @@
 #'
 stb_surv_join_par <- function(median_os, median_pfs, rho,
                               nsim        = 20000,
-                              interval_ub = 0,
+                              interval_ub = 10,
                               verbose     = 0,
                               method      = c("given.pfs", "given.os"),
                               seed        = 1000,
@@ -28,10 +28,10 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
 
     ## optimization target function
     f_opt_given_os <- function(l) {
-        t_pfs <- stb_surv_join_simu_given_os(l,
+        t_sim <- stb_surv_join_simu_given_os(l,
                                              hazard_os, hazard_pfs, rho,
                                              rnd_cdf = rnd_cdf)
-        t_pfs <- t_pfs[, "t_pfs"]
+        t_pfs <- t_sim[, "t_pfs"]
 
         ## squared loss
         rst <- (median(t_pfs) - median_pfs)^2
@@ -46,20 +46,22 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
 
     ## optimization target function
     f_opt_given_pfs <- function(l) {
-        t_pfs <- stb_surv_join_simu_given_pfs(l,
+        t_sim <- stb_surv_join_simu_given_pfs(l,
                                               hazard_os, hazard_pfs, rho,
                                               rnd_cdf = rnd_cdf,
                                               t_pfs = t_pfs, ...)
 
-        t_os <- t_pfs[, "t_os"]
+        t_os <- t_sim[, "t_os"]
 
         ## squared loss
-        rst <- (median(t_os) - median_os)^2
+        rst <- median(t_os) - median_os
 
         if (verbose > 0)
             cat("median os = ",
                 median(t_os),
                 "/", median_os,
+                ", hazard_prog = ",
+                l,
                 "\n")
         rst
     }
@@ -81,8 +83,8 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
                           given.pfs = f_opt_given_pfs,
                           given.os  = f_opt_given_os)
 
-    rst_optim   <- optimize(f_opt,
-                            interval = c(hazard_os, interval_ub))
+    rst_optim   <- uniroot(f_opt,
+                           interval = c(0, interval_ub))
     hazard_prog <- rst_optim$minimum
 
     ## kendall's tau
@@ -185,11 +187,11 @@ stb_surv_join_simu_given_pfs <- function(hazard_prog, hazard_os, hazard_pfs,
         ## prob t- h < pfs < t + h
         p_denom <- exp(-hazard_pfs * (t - h)) - exp(-hazard_pfs * (t + h))
 
-        ## prob t- h < os  < t + h & prog > t
+        ## prob t- h < os  < t + h & prog > os
         inx_num <- which(
-            smp_os  > t - h &
-            smp_os  < t + h &
-            smp_prog > t)
+            smp_os   > t - h &
+            smp_os   < t + h &
+            smp_prog > smp_os)
 
         p_num <- length(inx_num) / length(smp_os)
 
