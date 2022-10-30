@@ -9,10 +9,12 @@ stb_surv_join_par(
   median_pfs,
   rho,
   nsim = 20000,
-  interval = c(0, 10),
+  interval_ub = 0,
   verbose = 0,
-  ...,
-  seed = 1000
+  method = c("given.pfs", "given.os"),
+  seed = 1000,
+  nlarge = 50000,
+  ...
 )
 }
 \arguments{

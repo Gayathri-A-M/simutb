@@ -21,6 +21,7 @@ stb_design_surv_join(
   hr_pfs = 1,
   rho_ctl = 0.8,
   rho_trt = NULL,
+  method = c("given.pfs", "given.os"),
   ...,
   seed = NULL
 )

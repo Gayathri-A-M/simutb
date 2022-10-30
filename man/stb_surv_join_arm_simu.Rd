@@ -11,6 +11,7 @@ stb_surv_join_arm_simu(
   annual_drop = 0.05,
   mth_to_days = 30.4,
   date_bos = as.Date("2022-1-1"),
+  method = c("given.pfs", "given.os"),
   ...
 )
 }

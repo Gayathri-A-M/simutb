@@ -33,6 +33,7 @@ stb_design_surv_join <- function(info_frac       = c(0.3, 0.7, 1),
                                  hr_pfs          = 1,
                                  rho_ctl         = 0.8,
                                  rho_trt         = NULL,
+                                 method          = c("given.pfs", "given.os"),
                                  ...,
                                  seed            = NULL) {
 
@@ -46,7 +47,9 @@ stb_design_surv_join <- function(info_frac       = c(0.3, 0.7, 1),
     ## hazard and correlation
     par_ctl <- stb_surv_join_par(median_os  = ctl_median_os,
                                  median_pfs = ctl_median_pfs,
-                                 rho        = rho_ctl, ...)
+                                 rho        = rho_ctl,
+                                 method     = method,
+                                 ...)
 
     if (is.null(rho_trt))
         rho_trt <- rho_ctl
@@ -54,6 +57,7 @@ stb_design_surv_join <- function(info_frac       = c(0.3, 0.7, 1),
     par_trt <- stb_surv_join_par(median_os  = ctl_median_os  / hr_os,
                                  median_pfs = ctl_median_pfs / hr_pfs,
                                  rho        = rho_trt,
+                                 method     = method,
                                  ...)
 
     ## boundary
@@ -66,8 +70,7 @@ stb_design_surv_join <- function(info_frac       = c(0.3, 0.7, 1),
     if (is.null(bound_second))
         bound_second  <- rep(alpha, length(bound_primary))
 
-    pval_bounds <- cbind(bound_primary, bound_second)
-
+    pval_bounds           <- cbind(bound_primary, bound_second)
     colnames(pval_bounds) <- unique(c(primary, c("os", "pfs")))
 
     ## reset
