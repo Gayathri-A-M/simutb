@@ -4,7 +4,7 @@
 \alias{stb_surv_join_summary}
 \title{Summarize simulation results}
 \usage{
-stb_surv_join_summary(data_interim)
+stb_surv_join_summary(data_interim, primary_secondary)
 }
 \description{
 Summarize simulation results

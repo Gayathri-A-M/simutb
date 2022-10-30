@@ -64,7 +64,6 @@ stb_conduct_surv_join <- function(lst_design,
     ## all random seeds
     all_seeds <- ceiling(abs(rnorm(n_rep) * 10000))
 
-
     ## replications
     rst <- parallel::mclapply(seq_len(n_rep),
                               function(k) {
@@ -78,25 +77,33 @@ stb_conduct_surv_join <- function(lst_design,
     rst <- rbindlist(rst)
 
     ## summary
-    rst_summary <- stb_surv_join_summary(rst)
-    rst_key     <- data.frame(info_frac =
-                                  paste(lst_design$info_frac, collapse = ","),
-                              hr_os          = lst_design$hr_os,
-                              hr_pfs         = lst_design$hr_pfs,
-                              sample_size    = lst_design$sample_size,
-                              target_primary = lst_design$target_primary,
-                              rho_ctl        = lst_design$rho_ctl,
-                              rho_trt        = lst_design$rho_trt,
-                              kendall_ctl    = lst_design$par_ctl$kendall,
-                              kendall_trt    = lst_design$par_trt$kendall,
-                              zscore_cor     = rst_summary$zscore_cor,
-                              rej_os         = f_rej("os"),
-                              rej_pfs        = f_rej("pfs"),
-                              seed           = seed)
+    rst_summary <- stb_surv_join_summary(rst,
+                                         colnames(lst_design$pval_bounds))
+    rst_key     <- data.frame(
+        pri_sec        = paste(colnames(lst_design$pval_bounds),
+                               collapse = ","),
+        info_frac      = paste(lst_design$info_frac,
+                               collapse = ","),
+        hr_os          = lst_design$hr_os,
+        hr_pfs         = lst_design$hr_pfs,
+        sample_size    = lst_design$sample_size,
+        target_primary = lst_design$target_primary,
+        rho_ctl        = lst_design$rho_ctl,
+        rho_trt        = lst_design$rho_trt,
+        kendall_ctl    = lst_design$par_ctl$kendall,
+        kendall_trt    = lst_design$par_trt$kendall,
+        hz_prog_ctl    = lst_design$par_ctl$hazard_prog,
+        hz_prog_trt    = lst_design$par_trt$hazard_prog,
+        zscore_cor     = rst_summary$zscore_cor,
+        rej_os         = f_rej("os"),
+        rej_pfs        = f_rej("pfs"),
+        seed           = seed)
+
     ## reset
     if (!is.null(seed))
         set.seed(old_seed)
 
-    list(rst_summary = rst_summary,
+    list(rst_raw     = rst,
+         rst_summary = rst_summary,
          rst_key     = rst_key)
 }

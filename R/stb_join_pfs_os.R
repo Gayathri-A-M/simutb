@@ -85,7 +85,7 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
 
     rst_optim   <- uniroot(f_opt,
                            interval = c(0, interval_ub))
-    hazard_prog <- rst_optim$minimum
+    hazard_prog <- rst_optim$root
 
     ## kendall's tau
     if ("given.os" == method) {
@@ -456,6 +456,7 @@ stb_surv_join_trial_hiertest <- function(interim_rst, pval_bounds) {
         if (i > 1) {
             cur_rej <- cur_rej & last_rej
         }
+
         interim_rst[, paste("rej_", ps_e[i], sep = "")] <- cur_rej
         last_rej <- cur_rej
     }
@@ -468,21 +469,37 @@ stb_surv_join_trial_hiertest <- function(interim_rst, pval_bounds) {
 #'
 #' @export
 #'
-stb_surv_join_summary <- function(data_interim) {
+stb_surv_join_summary <- function(data_interim, primary_secondary) {
 
-    f_rej <- function(dat, var_rej) {
+    f_rej <- function(dat) {
         n_reps <- max(dat$rep)
-        dat %>%
-            filter((!!sym(var_rej)) == 1) %>%
+
+        ps  <- paste("rej_", primary_secondary, sep = "")
+        dat <- dat %>%
+            filter((!!sym(ps[1])) == 1) %>%
             group_by(rep) %>%
             arrange(inx) %>%
-            slice(n = 1) %>%
-            ungroup() %>%
+            slice(n = 1)
+
+        rej_pri <- dat %>%
             group_by(inx, info_frac) %>%
             summarize(N_Rej = n()) %>%
             mutate(Rej = N_Rej / n_reps) %>%
             ungroup() %>%
             mutate(CumuRej = cumsum(Rej))
+
+        rej_sec <- dat %>%
+            filter((!!sym(ps[2])) == 1) %>%
+            group_by(inx, info_frac) %>%
+            summarize(N_Rej = n()) %>%
+            mutate(Rej = N_Rej / n_reps) %>%
+            ungroup() %>%
+            mutate(CumuRej = cumsum(Rej))
+
+        rej_pri$event <- primary_secondary[1]
+        rej_sec$event <- primary_secondary[2]
+
+        rbind(rej_pri, rej_sec)
     }
 
 
@@ -499,11 +516,7 @@ stb_surv_join_summary <- function(data_interim) {
         summarize(rej = mean(rej))
 
     ## rejection probability
-    rst_os        <- f_rej(data_interim, "rej_os")
-    rst_pfs       <- f_rej(data_interim, "rej_pfs")
-
-    rst_os$event  <- "os"
-    rst_pfs$event <- "pfs"
+    rst_rejection <- f_rej(data_interim)
 
     ## hazard ratio
     mean_hr <- data_interim %>%
@@ -532,12 +545,12 @@ stb_surv_join_summary <- function(data_interim) {
           paste("pfs_", seq_len(n_ana), sep = ""))
 
     ## correlation of z_primary and z_secondary
-    cor_z <- cor(data_interim$zscore_os,
-                 data_interim$zscore_pfs)
+    cor_z <- cor_matrix[(n_ana + 1) : (2 * n_ana), 1 : n_ana]
+    cor_z <- mean(diag(cor_z))
 
     ## return
     list(rej_marginal  = rst_rej_marginal,
-         rejection     = rbind(rst_os, rst_pfs),
+         rejection     = rst_rejection,
          nevents       = rst_events,
          hr_mean       = mean_hr,
          zscore_mean   = mean_zscore,
