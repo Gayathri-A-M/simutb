@@ -22,7 +22,7 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
                               interval_ub = 10,
                               verbose     = 0,
                               method      = c("given.pfs", "given.os"),
-                              seed        = 1000,
+                              seed        = NULL,
                               nlarge      = 50000,
                               ...) {
 
@@ -53,7 +53,7 @@ stb_surv_join_par <- function(median_os, median_pfs, rho,
 
         t_os <- t_sim[, "t_os"]
 
-        ## squared loss
+        ## loss
         rst <- median(t_os) - median_os
 
         if (verbose > 0)

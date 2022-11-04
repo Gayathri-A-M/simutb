@@ -12,7 +12,7 @@ stb_surv_join_par(
   interval_ub = 10,
   verbose = 0,
   method = c("given.pfs", "given.os"),
-  seed = 1000,
+  seed = NULL,
   nlarge = 50000,
   ...
 )

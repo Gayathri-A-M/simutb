@@ -83,3 +83,28 @@ stb_design_surv_join <- function(info_frac       = c(0.3, 0.7, 1),
 
     rst
 }
+
+
+#' Get Study Design for Stratified Survival Analysis
+#'
+#' @param ctl_median median survival time for each stratum
+#' @param hr hazard ratio for each stratum
+#' @param stra_freq frequency of each stratum
+#'
+#' @export
+#'
+stb_design_surv_stra <- function(target          = 100,
+                                 sample_size     = 500,
+                                 ctl_ratio       = 0.5,
+                                 annual_drop     = 0.000001,
+                                 enroll_dur_mth  = 18,
+                                 stra_freq       = c(0.5, 0.5),
+                                 ctl_median      = c(15, 15),
+                                 hr              = c(0.7, 0.7)) {
+
+    ## return
+    rst         <- as.list(environment())
+    class(rst)  <- "DESIGN_SURV_STRATA"
+
+    rst
+ }

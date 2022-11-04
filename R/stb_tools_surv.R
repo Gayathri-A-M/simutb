@@ -264,7 +264,7 @@ stb_tl_interim_data_2arm <- function(data,
                                   date_pfs,
                                   date_interim),
                day_pfs = date_pfs - date_enroll,
-               day_os  = date_os - date_enroll
+               day_os  = date_os  - date_enroll
                )
     rst
 }
