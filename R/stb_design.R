@@ -47,18 +47,14 @@ stb_design_surv_join <- function(info_frac       = c(0.3, 0.7, 1),
     ## hazard and correlation
     par_ctl <- stb_surv_join_par(median_os  = ctl_median_os,
                                  median_pfs = ctl_median_pfs,
-                                 rho        = rho_ctl,
-                                 method     = method,
-                                 ...)
+                                 rho        = rho_ctl)
 
     if (is.null(rho_trt))
         rho_trt <- rho_ctl
 
     par_trt <- stb_surv_join_par(median_os  = ctl_median_os  / hr_os,
                                  median_pfs = ctl_median_pfs / hr_pfs,
-                                 rho        = rho_trt,
-                                 method     = method,
-                                 ...)
+                                 rho        = rho_trt)
 
     ## boundary
     bound_primary <-

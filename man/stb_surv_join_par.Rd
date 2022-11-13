@@ -4,24 +4,8 @@
 \alias{stb_surv_join_par}
 \title{Calculate hazard and coefficient for simulation}
 \usage{
-stb_surv_join_par(
-  median_os,
-  median_pfs,
-  rho,
-  nsim = 20000,
-  interval_ub = 10,
-  verbose = 0,
-  method = c("given.pfs", "given.os"),
-  seed = NULL,
-  nlarge = 50000,
-  ...
-)
-}
-\arguments{
-\item{rho}{correlation in copula model}
-
-\item{nsim}{number of simulated subjects for numerical calculation}
+stb_surv_join_par(median_os, median_pfs, rho)
 }
 \description{
-Calculate hazard using copula correlation
+Calculate hazard and coefficient for simulation
 }
