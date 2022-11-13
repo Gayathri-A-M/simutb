@@ -4,7 +4,7 @@
 \alias{stb_conduct_surv_biom}
 \title{Conduct Simulation Study for Arm Selection}
 \usage{
-stb_conduct_surv_biom(lst_design, n_rep = 1000, n_core = 1, seed = NULL)
+stb_conduct_surv_biom(lst_design, n_rep = 1000, n_core = 1, ..., seed = NULL)
 }
 \description{
 Conduct Simulation Study for Arm Selection

@@ -7,6 +7,18 @@
 ##
 ## -----------------------------------------------------------------------------
 
+#' Calculate hazard and coefficient for simulation
+#'
+#'
+#' @export
+#'
+stb_surv_join_par <- function(median_os, median_pfs, rho) {
+
+
+    hazard_pfs <- stb_tl_hazard(median_surv = median_pfs)
+
+}
+
 
 #' Calculate hazard and coefficient for simulation
 #'
@@ -17,7 +29,7 @@
 #'
 #' @export
 #'
-stb_surv_join_par <- function(median_os, median_pfs, rho,
+stb_surv_join_par_v0 <- function(median_os, median_pfs, rho,
                               nsim        = 20000,
                               interval_ub = 10,
                               verbose     = 0,
@@ -552,4 +564,47 @@ stb_surv_join_summary <- function(data_interim, primary_secondary) {
          zscore_mean   = mean_zscore,
          zscore_cormat = cor_matrix,
          zscore_cor    = cor_z)
+}
+
+
+#' Summarize key simulation results
+#'
+#' @export
+#'
+stb_surv_join_key <- function(lst_design, rst_summary, seed) {
+    f_rej <- function(endp) {
+        tmp <- rst_summary$rejection %>%
+            filter(event == endp)
+
+        if (0 == nrow(tmp)) {
+            rst <- 0
+        } else {
+            rst <- max(tmp$CumuRej)
+        }
+
+        rst
+    }
+
+    rst_key <- data.frame(
+        pri_sec        = paste(colnames(lst_design$pval_bounds),
+                               collapse = ","),
+        info_frac      = paste(lst_design$info_frac,
+                               collapse = ","),
+        hr_os          = lst_design$hr_os,
+        hr_pfs         = lst_design$hr_pfs,
+        sample_size    = lst_design$sample_size,
+        target_primary = lst_design$target_primary,
+        rho_ctl        = lst_design$rho_ctl,
+        rho_trt        = lst_design$rho_trt,
+        kendall_ctl    = lst_design$par_ctl$kendall,
+        kendall_trt    = lst_design$par_trt$kendall,
+        hz_prog_ctl    = lst_design$par_ctl$hazard_prog,
+        hz_prog_trt    = lst_design$par_trt$hazard_prog,
+        zscore_cor     = rst_summary$zscore_cor,
+        rej_os         = f_rej("os"),
+        rej_pfs        = f_rej("pfs"),
+        seed           = seed)
+
+
+    rst_key
 }

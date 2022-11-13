@@ -42,19 +42,6 @@ stb_conduct_surv_join <- function(lst_design,
         rst_rej
     }
 
-    f_rej <- function(endp) {
-        tmp <- rst_summary$rejection %>%
-            filter(event == endp)
-
-        if (0 == nrow(tmp)) {
-            rst <- 0
-        } else {
-            rst <- max(tmp$CumuRej)
-        }
-
-        rst
-    }
-
     stopifnot("DESIGN_SURV_JOIN" %in% class(lst_design))
 
     ## seed
@@ -77,27 +64,9 @@ stb_conduct_surv_join <- function(lst_design,
     rst <- rbindlist(rst)
 
     ## summary
-    rst_summary <- stb_surv_join_summary(rst,
-                                         colnames(lst_design$pval_bounds))
-    rst_key     <- data.frame(
-        pri_sec        = paste(colnames(lst_design$pval_bounds),
-                               collapse = ","),
-        info_frac      = paste(lst_design$info_frac,
-                               collapse = ","),
-        hr_os          = lst_design$hr_os,
-        hr_pfs         = lst_design$hr_pfs,
-        sample_size    = lst_design$sample_size,
-        target_primary = lst_design$target_primary,
-        rho_ctl        = lst_design$rho_ctl,
-        rho_trt        = lst_design$rho_trt,
-        kendall_ctl    = lst_design$par_ctl$kendall,
-        kendall_trt    = lst_design$par_trt$kendall,
-        hz_prog_ctl    = lst_design$par_ctl$hazard_prog,
-        hz_prog_trt    = lst_design$par_trt$hazard_prog,
-        zscore_cor     = rst_summary$zscore_cor,
-        rej_os         = f_rej("os"),
-        rej_pfs        = f_rej("pfs"),
-        seed           = seed)
+    rst_summary <- stb_surv_join_summary(rst, colnames(lst_design$pval_bounds))
+    ##_key
+    rst_key     <- stb_surv_join_key(lst_design, rst_summary, seed)
 
     ## reset
     if (!is.null(seed))
@@ -145,10 +114,14 @@ stb_conduct_surv_biom <- function(lst_design,
     ## summary
     rst_summary <- stb_surv_biom_summary(lst_rst)
 
+    ## key
+    rst_key     <- stb_surv_biom_key(lst_design, rst_summary, seed)
+
     ## reset
     if (!is.null(seed))
         set.seed(old_seed)
 
     ## return
-    rst_summary
+    list(rst_summary = rst_summary,
+         rst_key     = rst_key)
 }

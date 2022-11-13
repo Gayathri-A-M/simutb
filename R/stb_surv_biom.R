@@ -285,3 +285,41 @@ stb_surv_biom_summary <- function(lst_rst) {
 
     rst
 }
+
+#' Key simulation results
+#'
+#' @export
+#'
+stb_surv_biom_key <- function(lst_design, rst_summary, seed) {
+
+    fp <- function(vname) {
+        paste(lst_design[[vname]],
+              collapse = ",")
+    }
+
+    frej <- function(dta, a = NULL) {
+        dta <- dta %>% filter(info_frac == 1)
+
+        if (!is.null(a)) {
+            dta <- dta %>% filter(arm == a)
+        }
+
+        unname(as.numeric(dta[, "CumuRej"]))
+    }
+
+    rst_key <- data.frame(
+        info_frac      = fp("info_frac"),
+        hr             = fp("hr"),
+        ctl_median     = lst_design$ctl_median_surv[2],
+        sample_size    = lst_design$sample_size,
+        target_events  = lst_design$target_events,
+        interim_biom   = lst_design$interim_biom,
+        btype_primary  = lst_design$btype_primary,
+        sel_arm_2      = unname(as.numeric(rst_summary$sel_arm[2, "rate"])),
+        rej_any        = frej(rst_summary$rej_any),
+        rej_arm_1      = frej(rst_summary$rej_arm, 1),
+        rej_arm_2      = frej(rst_summary$rej_arm, 2),
+        seed           = seed)
+
+    rst_key
+}
