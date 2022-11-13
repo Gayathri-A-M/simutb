@@ -107,3 +107,48 @@ stb_conduct_surv_join <- function(lst_design,
          rst_summary = rst_summary,
          rst_key     = rst_key)
 }
+
+
+
+#' Conduct Simulation Study for Arm Selection
+#'
+#'
+#' @export
+#'
+stb_conduct_surv_biom <- function(lst_design,
+                                  n_rep  = 1000,
+                                  n_core = 1,
+                                  ...,
+                                  seed   = NULL) {
+
+    stopifnot("DESIGN_SURV_BIOM" %in% class(lst_design))
+
+    ## seed
+    if (!is.null(seed))
+        old_seed <- set.seed(seed)
+
+    ## all random seeds
+    all_seeds <- ceiling(abs(rnorm(n_rep) * 10000))
+
+    ## replication
+    lst_rst <- parallel::mclapply(seq_len(n_rep),
+                                  function(i) {
+                                      if (i %% 50 == 0)
+                                          print(i)
+
+                                      stb_surv_biom_trial_interim(
+                                          lst_design,
+                                          seed = all_seeds[i])
+                                  },
+                                  mc.cores = n_core)
+
+    ## summary
+    rst_summary <- stb_surv_biom_summary(lst_rst)
+
+    ## reset
+    if (!is.null(seed))
+        set.seed(old_seed)
+
+    ## return
+    rst_summary
+}

@@ -58,14 +58,18 @@ stb_tl_rexp <- function(ntot,
                         hazard       = NULL,
                         annual_drop  = NULL,
                         mth_to_days  = 30.4,
-                        take_floor   = TRUE) {
+                        take_floor   = FALSE) {
 
     if (is.null(hazard)) {
         hazard <- stb_tl_hazard(median_surv = median_mth,
                                 annual_drop = annual_drop)[1]
     }
 
-    rand_event <- rexp(ntot, hazard) * mth_to_days
+    if (0 == hazard) {
+        rand_event <- rep(Inf, ntot)
+    } else {
+        rand_event <- rexp(ntot, hazard) * mth_to_days
+    }
 
     if (take_floor)
         rand_event <- floor(rand_event)
@@ -86,8 +90,7 @@ stb_tl_pfs_os <- function(day_prog, day_dth, day_censor = NULL) {
 
         status_pfs <- censor > day_pfs
         status_os  <- censor > day_os
-
-        day_event <- min(prog, dth)
+        day_event  <- min(prog, dth)
 
         c(prog,
           dth,
@@ -106,7 +109,7 @@ stb_tl_pfs_os <- function(day_prog, day_dth, day_censor = NULL) {
                  1,
                  function(x) f_s(x[1], x[2], x[3]))
 
-    rst <- t(rst)
+    rst           <- t(rst)
     colnames(rst) <- c("day_prog",
                        "day_dth",
                        "day_censor",
@@ -135,8 +138,9 @@ stb_tl_simu_enroll <- function(ntot,
                                date_bos    = NULL,
                                mth_to_days = 30.4,
                                ...) {
+
     rand_enroll <- runif(ntot, 0, enroll_dur_mth)
-    day_enroll  <- floor(rand_enroll * mth_to_days)
+    day_enroll  <- rand_enroll * mth_to_days
 
     rst <- data.frame(sid        = seq_len(ntot),
                       day_enroll = day_enroll)
@@ -208,17 +212,38 @@ stb_tl_surv_simu_pwexp <- function(hazards, offset = 0) {
 #'
 stb_tl_surv_logrank <- function(data,
                                 fml_survdiff =
-                                    "Surv(day_pfs, status_pfs) ~ arm") {
-    surv_diff <- coxph(as.formula(fml_survdiff), data = data)
-    surv_sum  <- summary(surv_diff)
-    pvalue    <- surv_sum$coefficients[1, 5]
-    zscore    <- surv_sum$coefficients[1, 4]
-    hr        <- surv_sum$coefficients[1, 2]
+                                    "Surv(day_pfs, status_pfs) ~ arm",
+                                method = c("logrank", "score")) {
 
-    c(zscore = zscore,
-      pvalue = pnorm(zscore),
-      nevent = surv_diff$nevent,
-      hr     = hr)
+    method <- match.arg(method)
+    fml    <- as.formula(fml_survdiff)
+
+    surv_diff <- survdiff(fml, data = data)
+    pval_lr   <- surv_diff$pvalue
+
+    surv_diff <- coxph(fml, data = data)
+    surv_sum  <- summary(surv_diff)
+    hr        <- surv_sum$coefficients[1, 2]
+    zscore    <- surv_sum$coefficients[1, 4]
+    pval_cox  <- unname(surv_sum$sctest[3])
+
+    ## one-sided pvalue
+    pvalue <- switch(method,
+                     logrank = pval_lr,
+                     score   = pval_cox)
+    if (hr < 1) {
+        pvalue <- pvalue / 2
+    } else {
+        pvalue <- 1 - pvalue / 2
+    }
+
+    ## return
+    c(zscore         = zscore,
+      pvalue_oneside = pvalue,
+      nevent         = surv_diff$nevent,
+      hr             = hr,
+      pval_lr        = pval_lr,
+      pval_cox       = pval_cox)
 }
 
 
@@ -243,7 +268,7 @@ stb_tl_interim_data_2arm <- function(data,
         dplyr::filter((!!sym(v_status)) == 1) %>%
         arrange(!!sym(v_date))
 
-    stopifnot(nrow(events) > target_event)
+    stopifnot(nrow(events) >= target_event)
 
     ## date interim based on information fraction
     data$date_interim <- events[target_event, v_date]

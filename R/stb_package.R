@@ -21,7 +21,7 @@
 #' @importFrom survival Surv survfit coxph survdiff
 #' @importFrom rpact getDesignGroupSequential
 #' @importFrom mvtnorm rmvnorm pmvnorm
-#' @importFrom survminer ggsurvplot
+#' @importFrom survminer ggsurvplot ggsurvplot_facet
 #'
 #'
 NULL

@@ -286,7 +286,7 @@ stb_surv_join_arm_simu <- function(n,
 
     dta_enroll <- stb_tl_simu_enroll(n,
                                      enroll_dur_mth,
-                                     mth_to_days = 30.4,
+                                     mth_to_days = mth_to_days,
                                      date_bos    = date_bos,
                                      ...)
 
@@ -327,15 +327,11 @@ stb_surv_join_trial_simu <- function(ntrt,
                                      par_trt,
                                      nctl,
                                      par_ctl,
-                                     enroll_dur_mth,
-                                     annual_drop = 0.05,
                                      ...) {
 
-    dta_trt <- stb_surv_join_arm_simu(n = ntrt, par_trt, enroll_dur_mth,
-                                      annual_drop, ...)
+    dta_trt <- stb_surv_join_arm_simu(n = ntrt, par_trt, ...)
 
-    dta_ctl <- stb_surv_join_arm_simu(n = nctl, par_ctl, enroll_dur_mth,
-                                      annual_drop, ...)
+    dta_ctl <- stb_surv_join_arm_simu(n = nctl, par_ctl, ...)
 
     dta_trt$arm <- "1"
     dta_ctl$arm <- "0"

@@ -108,3 +108,51 @@ stb_design_surv_stra <- function(target          = 100,
 
     rst
  }
+
+
+#' Get Study Design for PFS with Biomarker
+#'
+#' @param interim_biom Interim sample size for arm selection
+#' @param f_arm_sel Arm selection function
+#'
+#' @export
+#'
+stb_design_surv_biom <- function(sample_size     = 600,
+                                 ratio_by_arm    = c(1/3, 1/3, 1/3),
+                                 p_biom_by_arm   = rbin(c(0.3, 0.7),
+                                                        c(0.3, 0.7),
+                                                        c(0.3, 0.7)),
+                                 ctl_median_surv = c(10, 15),
+                                 hr              = c(0.7, 0.7),
+                                 annual_drop     = 0.000001,
+                                 enroll_dur_mth  = 18,
+                                 info_frac       = c(0.5, 0.7, 1),
+                                 btype_primary   = "asOF",
+                                 alpha           = 0.025,
+                                 target_events   = 200,
+                                 interim_biom    = 300,
+                                 f_arm_sel       = stb_surv_biom_arm_sel_rule_1,
+                                 fml_surv        = "Surv(day_pfs, status_pfs) ~ arm"
+                                 ) {
+
+    ## boundary
+    bound <-
+        getDesignGroupSequential(sided            = 1,
+                                 alpha            = alpha,
+                                 informationRates = info_frac,
+                                 typeOfDesign     = btype_primary)$stageLevels
+
+    ## median survival
+    median_surv_by_arm <- ctl_median_surv
+    for (n_arm in seq_len(length(hr))) {
+        median_surv_by_arm <- rbind(
+            median_surv_by_arm,
+            ctl_median_surv / hr[n_arm])
+    }
+
+    ## return
+    rst         <- as.list(environment())
+    class(rst)  <- "DESIGN_SURV_BIOM"
+
+    rst
+}

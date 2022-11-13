@@ -4,7 +4,11 @@
 \alias{stb_tl_surv_logrank}
 \title{Log-Rank Test}
 \usage{
-stb_tl_surv_logrank(data, fml_survdiff = "Surv(day_pfs, status_pfs) ~ arm")
+stb_tl_surv_logrank(
+  data,
+  fml_survdiff = "Surv(day_pfs, status_pfs) ~ arm",
+  method = c("logrank", "score")
+)
 }
 \value{
 pvalue one-sided p-value
