@@ -221,11 +221,11 @@ stb_surv_join_trial_interim <- function(...,
         rst <- rbind(rst,
                      c(inx        = i,
                        info_frac  = info_frac[i],
-                       pval_os    = unname(test_os["pvalue"]),
+                       pval_os    = unname(test_os["pvalue_oneside"]),
                        zscore_os  = unname(test_os["zscore"]),
                        nevent_os  = unname(test_os["nevent"]),
                        hr_os      = unname(test_os["hr"]),
-                       pval_pfs   = unname(test_pfs["pvalue"]),
+                       pval_pfs   = unname(test_pfs["pvalue_oneside"]),
                        zscore_pfs = unname(test_pfs["zscore"]),
                        nevent_pfs = unname(test_pfs["nevent"]),
                        hr_pfs     = unname(test_pfs["hr"]))
@@ -353,8 +353,13 @@ stb_surv_join_summary <- function(data_interim, primary_secondary) {
           paste("pfs_", seq_len(n_ana), sep = ""))
 
     ## correlation of z_primary and z_secondary
-    cor_z <- cor_matrix[(n_ana + 1) : (2 * n_ana), 1 : n_ana]
-    cor_z <- mean(diag(cor_z))
+    cor_z <- NULL
+    for (i in 1:n_ana) {
+        cur_cor <- cor_matrix[paste("os_",  i, sep = ""),
+                              paste("pfs_", i, sep = "")]
+        cor_z   <- c(cor_z, cur_cor)
+    }
+    cor_z <- mean(cor_z)
 
     ## return
     list(rej_marginal  = rst_rej_marginal,

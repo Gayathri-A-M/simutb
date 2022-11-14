@@ -21,11 +21,9 @@ stb_conduct_surv_join <- function(lst_design,
 
     f_each <- function(k) {
         rst_interim <- stb_surv_join_trial_interim(
-            ntrt           = ceiling(lst_design$sample_size *
-                                     (1 - lst_design$ctl_ratio)),
+            ntrt           = ntrt,
             par_trt        = lst_design$par_trt,
-            nctl           = floor(lst_design$sample_size *
-                                   lst_design$ctl_ratio),
+            nctl           = nctl,
             par_ctl        = lst_design$par_ctl,
             enroll_dur_mth = lst_design$enroll_dur_mth,
             annual_drop    = lst_design$annual_drop,
@@ -49,7 +47,11 @@ stb_conduct_surv_join <- function(lst_design,
         old_seed <- set.seed(seed)
 
     ## all random seeds
-    all_seeds <- ceiling(abs(rnorm(n_rep) * 10000))
+    all_seeds <- ceiling(abs(rnorm(n_rep) * 100000))
+
+    ## arm size
+    nctl <- floor(lst_design$sample_size * lst_design$ctl_ratio)
+    ntrt <- lst_design$sample_size - nctl
 
     ## replications
     rst <- parallel::mclapply(seq_len(n_rep),
