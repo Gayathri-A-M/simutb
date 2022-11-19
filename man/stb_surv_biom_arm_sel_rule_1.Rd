@@ -4,7 +4,7 @@
 \alias{stb_surv_biom_arm_sel_rule_1}
 \title{Arm Selection Rule I}
 \usage{
-stb_surv_biom_arm_sel_rule_1(data)
+stb_surv_biom_arm_sel_rule_1(data, ...)
 }
 \description{
 Arm selection by interim biomarker. Select the treatment arm with the largest

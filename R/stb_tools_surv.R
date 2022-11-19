@@ -215,33 +215,41 @@ stb_tl_surv_logrank <- function(data,
                                     "Surv(day_pfs, status_pfs) ~ arm",
                                 method = c("logrank", "score")) {
 
-    method <- match.arg(method)
-    fml    <- as.formula(fml_survdiff)
+    method    <- match.arg(method)
+    fml       <- as.formula(fml_survdiff)
 
     surv_diff <- survdiff(fml, data = data)
     pval_lr   <- surv_diff$pvalue
 
     surv_diff <- coxph(fml, data = data)
     surv_sum  <- summary(surv_diff)
-    hr        <- surv_sum$coefficients[1, 2]
-    zscore    <- surv_sum$coefficients[1, 4]
     pval_cox  <- unname(surv_sum$sctest[3])
+    hr        <- surv_sum$coefficients[, 2]
+    zscore    <- surv_sum$coefficients[, 4]
+    pval_z    <- pnorm(zscore)
+
+    inx           <- seq_len(length(hr))
+    inx[1]        <- ""
+    names(hr)     <- paste("hr",     inx, sep = "")
+    names(zscore) <- paste("zscore", inx, sep = "")
+    names(pval_z) <- paste("pval_z_ones", inx, sep = "")
 
     ## one-sided pvalue
     pvalue <- switch(method,
                      logrank = pval_lr,
                      score   = pval_cox)
-    if (hr < 1) {
+    if (hr[1] < 1) {
         pvalue <- pvalue / 2
     } else {
         pvalue <- 1 - pvalue / 2
     }
 
     ## return
-    c(zscore         = zscore,
+    c(hr,
+      zscore,
+      pval_z,
       pvalue_oneside = pvalue,
       nevent         = surv_diff$nevent,
-      hr             = hr,
       pval_lr        = pval_lr,
       pval_cox       = pval_cox)
 }
@@ -275,6 +283,76 @@ stb_tl_interim_data_2arm <- function(data,
 
     ## censor at interim
     rst <- data %>%
+        filter(date_enroll <= date_interim) %>%
+        mutate(status_os = if_else(date_os <= date_interim,
+                                   status_os,
+                                   0),
+               status_pfs = if_else(date_pfs <= date_interim,
+                                    status_pfs,
+                                    0),
+               date_os = if_else(date_os <= date_interim,
+                                 date_os,
+                                 date_interim),
+               date_pfs = if_else(date_pfs <= date_interim,
+                                  date_pfs,
+                                  date_interim),
+               day_pfs = date_pfs - date_enroll,
+               day_os  = date_os  - date_enroll
+               )
+    rst
+}
+
+#' Get Interim Analysis Data
+#'
+#' This is an improved version of stb_tl_interim_data that allows to create an
+#' interim snapshot based on number of events or samples from any specific arms
+#'
+#' @param info_frac information fraction
+#' @param total total number of events or samples
+#' @param offset_days offset days after the target event for creating the
+#'     interim data
+#'
+#' @export
+#'
+stb_tl_interim_data <- function(data, info_frac,
+                                total       = NULL,
+                                event       = c("os", "pfs", "enroll"),
+                                arms        = NULL,
+                                offset_days = 0) {
+
+    event  <- match.arg(event)
+    v_date <- paste("date_",   event, sep = "")
+
+    ## default total is the total sample size
+    if (is.null(total))
+        total <- nrow(data)
+
+    ## target number of events or samples
+    target <- floor(total * info_frac)
+
+    ## all events
+    dta_events <- data
+    if (event %in% c("os", "pfs")) {
+        v_status   <- paste("status_", event, sep = "")
+        dta_events <- dta_events %>%
+            dplyr::filter((!!sym(v_status)) == 1)
+    }
+
+    if (!is.null(arms)) {
+        dta_events <- dat_events %>%
+            dplyr::filter(arm %in% arms)
+    }
+
+    dta_events  <- dta_events %>%
+        arrange(!!sym(v_date))
+
+    stopifnot(nrow(dta_events) >= target)
+
+    ## censor at interim
+    rst <- data %>%
+        mutate(date_interim =
+                   dta_events[target, v_date] +
+                   offset_days) %>%
         filter(date_enroll <= date_interim) %>%
         mutate(status_os = if_else(date_os <= date_interim,
                                    status_os,

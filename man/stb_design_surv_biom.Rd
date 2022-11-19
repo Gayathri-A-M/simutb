@@ -16,15 +16,16 @@ stb_design_surv_biom(
   btype_primary = "asOF",
   alpha = 0.025,
   target_events = 200,
-  interim_biom = 300,
+  drop_info_frac = 0.3,
+  drop_event = "pfs",
   f_arm_sel = stb_surv_biom_arm_sel_rule_1,
   fml_surv = "Surv(day_pfs, status_pfs) ~ arm"
 )
 }
 \arguments{
-\item{interim_biom}{Interim sample size for arm selection}
-
 \item{f_arm_sel}{Arm selection function}
+
+\item{interim_biom}{Interim sample size for arm selection}
 }
 \description{
 Get Study Design for PFS with Biomarker

@@ -126,9 +126,10 @@ stb_design_surv_biom <- function(sample_size     = 600,
                                  btype_primary   = "asOF",
                                  alpha           = 0.025,
                                  target_events   = 200,
-                                 interim_biom    = 300,
+                                 drop_info_frac  = 0.3,
+                                 drop_event      = "pfs",
                                  f_arm_sel       = stb_surv_biom_arm_sel_rule_1,
-                                 fml_surv        = "Surv(day_pfs, status_pfs) ~ arm"
+                                 fml_surv = "Surv(day_pfs, status_pfs) ~ arm"
                                  ) {
 
     ## boundary
@@ -144,6 +145,13 @@ stb_design_surv_biom <- function(sample_size     = 600,
         median_surv_by_arm <- rbind(
             median_surv_by_arm,
             ctl_median_surv / hr[n_arm])
+    }
+
+    ## drop target event
+    if ("enroll" == drop_event) {
+        drop_target <- sample_size
+    } else {
+        drop_target <- target_events
     }
 
     ## return

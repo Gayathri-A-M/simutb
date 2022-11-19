@@ -135,23 +135,42 @@ stb_surv_biom_trial_plot <- function(data, facet_by = "arm") {
 #'
 #' @export
 #'
-stb_surv_biom_arm_sel_rule_1 <- function(data) {
+stb_surv_biom_arm_sel_rule_1 <- function(data, ...) {
     dta_biom <- data %>%
-        filter(arm > 0 & included == 1) %>%
+        filter(arm > 0) %>%
         group_by(arm) %>%
-        summarize(n         = n(),
-                  mean_biom = mean(biom)) %>%
-        arrange(mean_biom)
+        summarize(n    = n(),
+                  biom = mean(biom)) %>%
+        arrange(biom)
 
     sel_arm <- as.numeric(dta_biom[nrow(dta_biom),
                                    'arm'])
 
-    data    <- data %>% filter(arm %in% as.character(c(0, sel_arm)))
+    list(sel_arm = sel_arm,
+         biom    = dta_biom)
+}
+
+#' Arm Selection Rule II
+#'
+#' Arm selection by pfs. Select the treatment arm with the best
+#' hazard rate.
+#'
+#' @export
+#'
+stb_surv_biom_arm_sel_rule_2 <- function(data, fml_surv) {
+    test_pfs <- stb_tl_surv_logrank(data = data,
+                                    fml  = fml_surv)
+
+    zscore  <- which(grepl("zscore", names(test_pfs)))
+    zscore  <- test_pfs[zscore]
+    sel_arm <- which.min(zscore)
 
     list(sel_arm = sel_arm,
-         biom    = dta_biom,
-         data    = data)
+         biom    = data.frame(arm  = seq_len(length(zscore)),
+                              n    = 0, ## place holder
+                              biom = zscore))
 }
+
 
 #' Simulate a trial with interim
 #'
@@ -166,31 +185,33 @@ stb_surv_biom_trial_interim <- function(lst_design, seed = NULL) {
 
     data_full <- stb_surv_biom_trial_simu(lst_design)
 
-    ## check
-    ## data_full %>%
+    ## check    ## data_full %>%
     ##     group_by(arm, biom) %>%
     ##     summarize(n = n(),
     ##               pfs = median(day_pfs) / 30.1)
 
+    ## interim look data for arm selection
+    data_drop <- stb_tl_interim_data(data_full,
+                                     total     = lst_design$drop_target,
+                                     info_frac = lst_design$drop_info_frac,
+                                     event     = lst_design$drop_event)
+
     ## arm selection
     f_sel        <- lst_design$f_arm_sel
-    interim_date <- data_full %>% arrange(date_enroll)
-    interim_date <- interim_date[lst_design$interim_biom,
-                                 "date_enroll"]
+    lst_arm_sel  <- f_sel(data_drop, lst_design$fml_surv)
 
-    data_biom    <- data_full %>%
-        mutate(included = if_else(date_enroll <= interim_date,
-                                  1, 0))
-    lst_arm_sel <- f_sel(data_biom)
+    ## data selected
+    data_sel <- data_full %>% filter(arm %in% c(0, lst_arm_sel$sel_arm))
 
     ## interim analysis
     info_frac <- lst_design$info_frac
     rst       <- NULL
     for (i in seq_len(length(lst_design$info_frac))) {
-        data_interim <- stb_tl_interim_data_2arm(lst_arm_sel$data,
-                                                 lst_design$target_events,
-                                                 info_frac[i],
-                                                 event = "pfs")
+        data_interim <- stb_tl_interim_data(
+            data_sel,
+            total     = lst_design$target_events,
+            info_frac = info_frac[i],
+            event     = "pfs")
 
         test_pfs <- stb_tl_surv_logrank(data = data_interim,
                                         fml  = lst_design$fml_surv)
@@ -198,7 +219,7 @@ stb_surv_biom_trial_interim <- function(lst_design, seed = NULL) {
         pval     <- unname(test_pfs["pvalue_oneside"])
         bound    <- lst_design$bound[i]
         rst      <- rbind(rst,
-                          c(arm        = lst_arm_sel$sel_arm,
+                          c(arm        = unname(lst_arm_sel$sel_arm),
                             inx        = i,
                             info_frac  = info_frac[i],
                             bound      = bound,
@@ -230,7 +251,7 @@ stb_surv_biom_summary <- function(lst_rst) {
     n_reps      <- length(lst_rst)
     rst_biom    <- list()
     rst_interim <- list()
-    for (i in 1:length(lst_rst)) {
+    for (i in seq_len(length(lst_rst))) {
         rst_biom[[i]]    <- lst_rst[[i]]$biom
         rst_interim[[i]] <- lst_rst[[i]]$rst %>% mutate(rep = i)
     }
@@ -247,8 +268,8 @@ stb_surv_biom_summary <- function(lst_rst) {
     ## biomarker at interim
     rst_biom_summary <- rst_biom %>%
         group_by(arm) %>%
-        summarize(n         = mean(n),
-                  mean_biom = mean(mean_biom))
+        summarize(n    = mean(n),
+                  mean = mean(biom))
 
     ## estimate
     rst_hr <- rst_interim %>%
@@ -298,13 +319,14 @@ stb_surv_biom_key <- function(lst_design, rst_summary, seed) {
     }
 
     frej <- function(dta, a = NULL) {
-        dta <- dta %>% filter(info_frac == 1)
+        dta <- dta %>%
+            arrange(info_frac)
 
         if (!is.null(a)) {
             dta <- dta %>% filter(arm == a)
         }
 
-        unname(as.numeric(dta[, "CumuRej"]))
+        unname(as.numeric(dta[nrow(dta), "CumuRej"]))
     }
 
     rst_key <- data.frame(
@@ -313,7 +335,8 @@ stb_surv_biom_key <- function(lst_design, rst_summary, seed) {
         ctl_median     = lst_design$ctl_median_surv[2],
         sample_size    = lst_design$sample_size,
         target_events  = lst_design$target_events,
-        interim_biom   = lst_design$interim_biom,
+        drop_event     = lst_design$drop_event,
+        drop_info_frac = lst_design$drop_info_frac,
         btype_primary  = lst_design$btype_primary,
         sel_arm_2      = unname(as.numeric(rst_summary$sel_arm[2, "rate"])),
         rej_any        = frej(rst_summary$rej_any),
