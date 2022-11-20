@@ -20,7 +20,7 @@
 #' @importFrom data.table rbindlist
 #' @importFrom survival Surv survfit coxph survdiff
 #' @importFrom rpact getDesignGroupSequential
-#' @importFrom mvtnorm rmvnorm pmvnorm
+#' @importFrom mvtnorm rmvnorm pmvnorm dmvnorm
 #' @importFrom survminer ggsurvplot ggsurvplot_facet
 #'
 #'

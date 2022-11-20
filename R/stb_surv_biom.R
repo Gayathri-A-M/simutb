@@ -8,6 +8,101 @@
 ##
 ## -----------------------------------------------------------------------------
 
+#' Theoretical derivation
+#'
+#' @export
+#'
+stb_surv_biom_theory <- function(drop_info_frac = 0.3,
+                                 info_frac      = c(0.4, 1),
+                                 n_arm          = 3,
+                                 btype_primary  = "asOF",
+                                 alpha          = 0.025,
+                                 n_large        = 1000000,
+                                 seed           = NULL,
+                                 ...) {
+
+    f_rej <- function(zs) {
+        zs_other <- zs[1:n_other]
+        zs_1     <- zs[n_other]
+        zs_int   <- zs[-(1:n_other)]
+        rej_1    <- all(zs_1 >= zs_other)
+        rej_2    <- any(zs_int > boundary)
+        rej_3    <- rej_1 & rej_2
+
+        c(rej_1, rej_2, rej_3)
+    }
+
+    f_int <- function(zs) {
+        rej <- f_rej(zs)
+        rst <- rej[3] * dmvnorm(zs,
+                                mean  = rep(0, length(zs)),
+                                sigma = mat_sig)
+        rst
+    }
+
+    if (!is.null(seed))
+        old_seed <- set.seed(seed)
+
+    ## get variance matrix
+    n_int   <- length(info_frac)
+    n_other <- n_arm - 1
+    mat_sig <- matrix(NA, n_other + n_int, n_other + n_int)
+    mat_sig[1:n_other, 1:n_other] <- 1 / 2
+    for (k in 1:n_other) {
+        for (j in 1:n_int) {
+            if (k == n_other) {
+                fac <- 1
+            } else {
+                fac <- 2
+            }
+            mat_sig[k, j + n_other] <- mat_sig[j + n_other, k] <-
+                sqrt(drop_info_frac / info_frac[j]) / fac
+        }
+    }
+
+    for (i in 1:n_int) {
+        for (j in i:n_int) {
+            mat_sig[i + n_other, j + n_other] <-
+                mat_sig[j + n_other, i + n_other] <-
+                sqrt(info_frac[i] / info_frac[j])
+        }
+    }
+
+    diag(mat_sig) <- 1
+
+    ## boundary
+    boundary <-
+        getDesignGroupSequential(sided            = 1,
+                                 alpha            = alpha,
+                                 informationRates = info_frac,
+                                 typeOfDesign     = btype_primary)
+    boundary <- boundary$criticalValues
+
+    ## integration
+    smps <- rmvnorm(n_large,
+                    mean  = rep(0, nrow(mat_sig)),
+                    sigma = mat_sig)
+
+    rej <- apply(smps, 1, f_rej)
+    rej <- t(rej)
+
+    ## result
+    rates <- c(margin      = mean(rej[, 2]),
+               sel_arm     = mean(rej[, 1]),
+               conditional = sum(rej[, 3]) / sum(rej[, 1]))
+
+    ## reset
+    if (!is.null(seed))
+        set.seed(old_seed)
+
+    ## return
+    list(smps  = smps,
+         rej   = rej,
+         sigma = mat_sig,
+         bound = boundary,
+         rates = rates)
+}
+
 
 #' Simulate an arm
 #'
