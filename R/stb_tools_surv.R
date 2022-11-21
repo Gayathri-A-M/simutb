@@ -220,7 +220,6 @@ stb_tl_surv_logrank <- function(data,
 
     surv_diff <- survdiff(fml, data = data)
     pval_lr   <- surv_diff$pvalue
-
     surv_diff <- coxph(fml, data = data)
     surv_sum  <- summary(surv_diff)
     pval_cox  <- unname(surv_sum$sctest[3])
@@ -238,6 +237,7 @@ stb_tl_surv_logrank <- function(data,
     pvalue <- switch(method,
                      logrank = pval_lr,
                      score   = pval_cox)
+
     if (hr[1] < 1) {
         pvalue <- pvalue / 2
     } else {
