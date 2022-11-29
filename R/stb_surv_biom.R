@@ -266,6 +266,34 @@ stb_surv_biom_arm_sel_rule_2 <- function(data, fml_surv) {
                               biom = zscore))
 }
 
+#' Arm Selection Rule I
+#'
+#' Arm selection by interim biomarker. Select arm 2 only when its biom rate is
+#' xx% better than arm 1
+#'
+#' @export
+#'
+stb_surv_biom_arm_sel_rule_3 <- function(data, margin = 0.1, ...) {
+    dta_biom <- data %>%
+        filter(arm > 0) %>%
+        group_by(arm) %>%
+        summarize(n    = n(),
+                  biom = mean(biom)) %>%
+        arrange(arm)
+
+    rate_arm_1 <- dta_biom[1, "biom"]
+    rate_arm_2 <- dta_biom[2, "biom"]
+
+    if (rate_arm_2 - rate_arm_1 > margin) {
+        sel_arm <- 2
+    } else {
+        sel_arm <- 1
+    }
+
+    list(sel_arm = sel_arm,
+         biom    = dta_biom)
+}
+
 
 #' Simulate a trial with interim
 #'

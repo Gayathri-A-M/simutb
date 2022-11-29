@@ -13,7 +13,8 @@ Depends:
     methods,
     R (>= 3.5.0),
     Rcpp (>= 1.0.2),
-    dplyr
+    dplyr,
+    survival (>= 3.4)
 Imports:
     parallel (>= 3.2)
 LinkingTo:
