@@ -307,11 +307,17 @@ stb_surv_biom_trial_interim <- function(lst_design, seed = NULL) {
         old_seed <- set.seed(seed)
 
     data_full <- stb_surv_biom_trial_simu(lst_design)
+    if (0) {
+        ## check
+        data_full %>%
+            group_by(arm) %>%
+            summarize(biom = mean(biom))
 
-    ## check    ## data_full %>%
-    ##     group_by(arm, biom) %>%
-    ##     summarize(n = n(),
-    ##               pfs = median(day_pfs) / 30.1)
+        data_full %>%
+            group_by(arm, biom) %>%
+            summarize(n = n(),
+                      pfs = median(day_pfs) / 30.1)
+    }
 
     ## interim look data for arm selection
     data_drop <- stb_tl_interim_data(data_full,
@@ -321,7 +327,9 @@ stb_surv_biom_trial_interim <- function(lst_design, seed = NULL) {
 
     ## arm selection
     f_sel        <- lst_design$f_arm_sel
-    lst_arm_sel  <- f_sel(data_drop, lst_design$fml_surv)
+    lst_arm_sel  <- f_sel(data_drop,
+                          lst_design$fml_surv,
+                          margin = lst_design$margin_r3)
 
     ## data selected
     data_sel <- data_full %>% filter(arm %in% c(0, lst_arm_sel$sel_arm))

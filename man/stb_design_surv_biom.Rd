@@ -19,6 +19,7 @@ stb_design_surv_biom(
   drop_info_frac = 0.3,
   drop_event = "pfs",
   f_arm_sel = stb_surv_biom_arm_sel_rule_1,
+  margin_r3 = 0.1,
   fml_surv = "Surv(day_pfs, status_pfs) ~ arm"
 )
 }
@@ -26,6 +27,8 @@ stb_design_surv_biom(
 \item{f_arm_sel}{Arm selection function}
 
 \item{interim_biom}{Interim sample size for arm selection}
+
+\item{maring_r3}{margin option selection function rule 3}
 }
 \description{
 Get Study Design for PFS with Biomarker

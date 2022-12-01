@@ -110,6 +110,7 @@ stb_design_surv_stra <- function(target          = 100,
 #'
 #' @param interim_biom Interim sample size for arm selection
 #' @param f_arm_sel Arm selection function
+#' @param maring_r3 margin option selection function rule 3
 #'
 #' @export
 #'
@@ -129,7 +130,8 @@ stb_design_surv_biom <- function(sample_size     = 600,
                                  drop_info_frac  = 0.3,
                                  drop_event      = "pfs",
                                  f_arm_sel       = stb_surv_biom_arm_sel_rule_1,
-                                 fml_surv = "Surv(day_pfs, status_pfs) ~ arm"
+                                 margin_r3       = 0.1,
+                                 fml_surv  = "Surv(day_pfs, status_pfs) ~ arm"
                                  ) {
 
     ## boundary

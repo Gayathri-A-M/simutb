@@ -368,6 +368,7 @@ stb_tl_interim_data <- function(data, info_frac,
                                   date_interim),
                day_pfs = date_pfs - date_enroll,
                day_os  = date_os  - date_enroll
-               )
+               ) %>%
+        arrange(date_enroll)
     rst
 }
