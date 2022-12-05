@@ -99,7 +99,7 @@ stb_conduct_surv_biom <- function(lst_design,
         old_seed <- set.seed(seed)
 
     ## all random seeds
-    all_seeds <- ceiling(abs(rnorm(n_rep) * 10000))
+    all_seeds <- ceiling(abs(rnorm(n_rep) * 1000000))
 
     ## replication
     lst_rst <- parallel::mclapply(seq_len(n_rep),

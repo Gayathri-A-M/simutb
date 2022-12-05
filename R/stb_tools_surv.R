@@ -372,3 +372,17 @@ stb_tl_interim_data <- function(data, info_frac,
         arrange(date_enroll)
     rst
 }
+
+
+#' Simulate bivariate normal
+#'
+#'
+#' @export
+#'
+stb_tl_simu_bn <- function(n, mu_1, mu_2, s2_1, s2_2, s2_12) {
+    y2 <- rnorm(n, mu_2, sqrt(s2_2))
+    y1 <- mu_1 + s2_12 / s2_2 * (y2 - mu_2)
+    y1 <- y1 + rnorm(n, 0, sqrt(s2_1 - s2_12^2 / s2_2))
+
+    cbind(y1, y2)
+}

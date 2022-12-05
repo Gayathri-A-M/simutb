@@ -10,6 +10,9 @@
 
 #' Theoretical derivation
 #'
+#' Theoretical derivation for selecting dose arm based on EFS with EFS being the
+#' primary endpoint
+#'
 #' @export
 #'
 stb_surv_biom_theory <- function(drop_info_frac = 0.3,
@@ -103,6 +106,99 @@ stb_surv_biom_theory <- function(drop_info_frac = 0.3,
          rates = rates)
 }
 
+
+#' Theoretical derivation II
+#'
+#' Theoretical derivation for selecting dose arm based on pCR
+#'
+#' @param n sample size each arm at arm-selection look
+#' @param p_biom true pcR rate
+#' @param rho correlation between pCR statistic and log-rank test statistic
+#' @param alpha alpha level at the primary analysis
+#' @param margin margin to select arm 2
+#'
+#' @export
+#'
+stb_surv_biom_theory_pcr <- function(n_1, p_biom_1, rho_1,
+                                     n_2        = n_1,
+                                     p_biom_2   = p_biom_1,
+                                     rho_2      = rho_1,
+                                     margin     = 0.1,
+                                     alpha      = 0.025,
+                                     n_large    = 1000000,
+                                     seed       = NULL,
+                                     ...) {
+
+    f_rej <- function(zs) {
+
+        w <- zs[1:2]
+        z <- zs[3:4]
+
+        if (w[2] - w[1] > margin) {
+            sel_arm <- 2
+        } else {
+            sel_arm <- 1
+        }
+
+        rej_arm          <- c(0, 0)
+        rej_arm[sel_arm] <- z[sel_arm] > thresh
+
+        c(sel_arm, rej_arm)
+    }
+
+
+    if (!is.null(seed))
+        old_seed <- set.seed(seed)
+
+    thresh  <- - qnorm(alpha)
+
+    ## arm 1
+    var_w   <- p_biom_1 * (1 - p_biom_1) / n_1
+    rho_v   <- rho_1^2 * var_w
+    w1      <- rnorm(n_large, p_biom_1, sqrt(var_w))
+    z1      <- rnorm(n_large,
+                     rho_1 * (w1 - p_biom_1),
+                     sqrt(1 - rho_v))
+
+    ## arm 2
+    var_w   <- p_biom_2 * (1 - p_biom_2) / n_2
+    rho_v   <- rho_2^2 * var_w
+    w2      <- rnorm(n_large, p_biom_2, sqrt(var_w))
+    z2      <- rnorm(n_large,
+                     rho_2 * (w2 - p_biom_2),
+                     sqrt(1 - rho_v))
+    smps    <- cbind(w1, w2, z1, z2)
+
+    ## rejection
+    rej <- apply(smps, 1, f_rej)
+    rej <- t(rej)
+
+    ## reset
+    if (!is.null(seed))
+        set.seed(old_seed)
+
+    ## return
+    sel_arm_1  <- mean(1 == rej[, 1])
+    rej_arm_1  <- mean(rej[, 2])
+    rej_arm_2  <- mean(rej[, 3])
+    rej_any    <- rej_arm_1 + rej_arm_2
+    rej_con_a1 <- mean(rej[which(1 == rej[, 1]), 2])
+    rej_con_a2 <- mean(rej[which(2 == rej[, 1]), 3])
+
+    c(p_biom_1   = p_biom_1,
+      n_1        = n_1,
+      rho_1      = rho_1,
+      p_biom_2   = p_biom_2,
+      n_2        = n_2,
+      rho_2      = rho_2,
+      sel_a1     = sel_arm_1,
+      sel_a2     = 1 - sel_arm_1,
+      rej_a1     = rej_arm_1,
+      rej_a2     = rej_arm_2,
+      rej_any    = rej_any,
+      rej_con_a1 = rej_con_a1,
+      rej_con_a2 = rej_con_a2)
+}
 
 #' Simulate an arm
 #'
@@ -337,29 +433,35 @@ stb_surv_biom_trial_interim <- function(lst_design, seed = NULL) {
     ## interim analysis
     info_frac <- lst_design$info_frac
     rst       <- NULL
-    for (i in seq_len(length(lst_design$info_frac))) {
-        data_interim <- stb_tl_interim_data(
-            data_sel,
-            total     = lst_design$target_events,
-            info_frac = info_frac[i],
-            event     = "pfs")
+    for (a in 1:2) {
+        data_sel <- data_full %>%
+            filter(arm %in% c(0, a))
 
-        test_pfs <- stb_tl_surv_logrank(data = data_interim,
-                                        fml  = lst_design$fml_surv)
+        for (i in seq_len(length(lst_design$info_frac))) {
+            data_interim <- stb_tl_interim_data(
+                data_sel,
+                total     = lst_design$target_events,
+                info_frac = info_frac[i],
+                event     = "pfs")
 
-        pval     <- unname(test_pfs["pvalue_oneside"])
-        bound    <- lst_design$bound[i]
-        rst      <- rbind(rst,
-                          c(arm        = unname(lst_arm_sel$sel_arm),
-                            inx        = i,
-                            info_frac  = info_frac[i],
-                            bound      = bound,
-                            pval       = pval,
-                            rej        = pval <= bound,
-                            zscore     = unname(test_pfs["zscore"]),
-                            nevent     = unname(test_pfs["nevent"]),
-                            hr         = unname(test_pfs["hr"]))
-                          )
+            test_pfs <- stb_tl_surv_logrank(data = data_interim,
+                                            fml  = lst_design$fml_surv)
+
+            pval     <- unname(test_pfs["pvalue_oneside"])
+            bound    <- lst_design$bound[i]
+            rst      <- rbind(rst,
+                              c(sel_arm    = unname(lst_arm_sel$sel_arm),
+                                arm        = a,
+                                inx        = i,
+                                info_frac  = info_frac[i],
+                                bound      = bound,
+                                pval       = pval,
+                                rej        = pval <= bound,
+                                zscore     = unname(test_pfs["zscore"]),
+                                nevent     = unname(test_pfs["nevent"]),
+                                hr         = unname(test_pfs["hr"])))
+
+        }
     }
 
     ## reset
@@ -383,16 +485,17 @@ stb_surv_biom_summary <- function(lst_rst) {
     rst_biom    <- list()
     rst_interim <- list()
     for (i in seq_len(length(lst_rst))) {
-        rst_biom[[i]]    <- lst_rst[[i]]$biom
-        rst_interim[[i]] <- lst_rst[[i]]$rst %>% mutate(rep = i)
+        rst_biom[[i]]    <- lst_rst[[i]]$biom %>% mutate(rep = i)
+        rst_interim[[i]] <- lst_rst[[i]]$rst  %>% mutate(rep = i)
     }
+
     rst_biom    <- rbindlist(rst_biom)
     rst_interim <- rbindlist(rst_interim)
 
     ## arm selection
     rst_sel_arm <- rst_interim %>%
-        distinct(arm, rep) %>%
-        group_by(arm) %>%
+        distinct(sel_arm, rep) %>%
+        group_by(sel_arm) %>%
         summarize(n    = n(),
                   rate = n / n_reps)
 
@@ -409,15 +512,16 @@ stb_surv_biom_summary <- function(lst_rst) {
 
     ## rejection
     rej <- rst_interim %>%
-        filter(rej == 1) %>%
-        group_by(rep, arm) %>%
-        arrange(inx) %>%
+        filter(sel_arm == arm &
+               rej == 1) %>%
+        group_by(rep, sel_arm) %>%
+        arrange(inx, .by_group = TRUE) %>%
         slice(n = 1) %>%
         ungroup() %>%
-        group_by(inx, info_frac, arm) %>%
+        group_by(inx, info_frac, sel_arm) %>%
         summarize(N_Rej = n()) %>%
         mutate(Rej = N_Rej / n_reps) %>%
-        group_by(arm) %>%
+        group_by(sel_arm) %>%
         mutate(CumuRej = cumsum(Rej))
 
     rej_any <- rej %>%
@@ -454,7 +558,8 @@ stb_surv_biom_key <- function(lst_design, rst_summary, seed) {
             arrange(info_frac)
 
         if (!is.null(a)) {
-            dta <- dta %>% filter(arm == a)
+            dta <- dta %>%
+                filter(sel_arm == a)
         }
 
         unname(as.numeric(dta[nrow(dta), "CumuRej"]))

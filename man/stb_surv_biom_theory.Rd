@@ -16,5 +16,6 @@ stb_surv_biom_theory(
 )
 }
 \description{
-Theoretical derivation
+Theoretical derivation for selecting dose arm based on EFS with EFS being the
+primary endpoint
 }
