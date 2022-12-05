@@ -153,21 +153,34 @@ stb_surv_biom_theory_pcr <- function(n_1, p_biom_1, rho_1,
     thresh  <- - qnorm(alpha)
 
     ## arm 1
-    var_w   <- p_biom_1 * (1 - p_biom_1) / n_1
-    rho_v   <- rho_1^2 * var_w
-    w1      <- rnorm(n_large, p_biom_1, sqrt(var_w))
-    z1      <- rnorm(n_large,
-                     rho_1 * (w1 - p_biom_1),
-                     sqrt(1 - rho_v))
+    var_w_1  <- p_biom_1 * (1 - p_biom_1) / n_1
+    rho_v_1  <- rho_1 * var_w_1
+    smps_1   <- stb_tl_simu_bn(n_large,
+                               mu_1  = p_biom_1,
+                               mu_2  = 0,
+                               s2_1  = var_w_1,
+                               s2_2  = 1,
+                               s2_12 = rho_v_1)
+
+    ## w1      <- rnorm(n_large, p_biom_1, sqrt(var_w))
+    ## z1      <- rnorm(n_large,
+    ##                  rho_1 * (w1 - p_biom_1),
+    ##                  sqrt(1 - rho_v))
 
     ## arm 2
-    var_w   <- p_biom_2 * (1 - p_biom_2) / n_2
-    rho_v   <- rho_2^2 * var_w
-    w2      <- rnorm(n_large, p_biom_2, sqrt(var_w))
-    z2      <- rnorm(n_large,
-                     rho_2 * (w2 - p_biom_2),
-                     sqrt(1 - rho_v))
-    smps    <- cbind(w1, w2, z1, z2)
+    var_w_2   <- p_biom_2 * (1 - p_biom_2) / n_2
+    rho_v_2   <- rho_2 * var_w_2
+    smps_2    <- stb_tl_simu_bn(n_large,
+                                mu_1  = p_biom_2,
+                                mu_2  = 0,
+                                s2_1  = var_w_2,
+                                s2_2  = 1,
+                                s2_12 = rho_v_2)
+
+    smps    <- cbind(smps_1[, 1],
+                     smps_2[, 1],
+                     smps_1[, 2],
+                     smps_2[, 2])
 
     ## rejection
     rej <- apply(smps, 1, f_rej)
@@ -293,7 +306,7 @@ stb_surv_biom_trial_simu <- function(lst_design, seed = NULL, ...) {
             annual_drop    = lst_design$annual_drop,
             ...)
 
-        cur_arm$arm <- as.character(i - 1)
+        cur_arm$arm <- i - 1
         rst         <- rbind(rst, cur_arm)
     }
 
@@ -403,6 +416,7 @@ stb_surv_biom_trial_interim <- function(lst_design, seed = NULL) {
         old_seed <- set.seed(seed)
 
     data_full <- stb_surv_biom_trial_simu(lst_design)
+
     if (0) {
         ## check
         data_full %>%
