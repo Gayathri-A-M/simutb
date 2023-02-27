@@ -220,17 +220,19 @@ stb_tl_surv_logrank <- function(data,
 
     surv_diff <- survdiff(fml, data = data)
     pval_lr   <- surv_diff$pvalue
+
     surv_diff <- coxph(fml, data = data)
     surv_sum  <- summary(surv_diff)
     pval_cox  <- unname(surv_sum$sctest[3])
     hr        <- surv_sum$coefficients[, 2]
     zscore    <- surv_sum$coefficients[, 4]
+
     pval_z    <- pnorm(zscore)
 
     inx           <- seq_len(length(hr))
     inx[1]        <- ""
-    names(hr)     <- paste("hr",     inx, sep = "")
-    names(zscore) <- paste("zscore", inx, sep = "")
+    names(hr)     <- paste("hr",          inx, sep = "")
+    names(zscore) <- paste("zscore",      inx, sep = "")
     names(pval_z) <- paste("pval_z_ones", inx, sep = "")
 
     ## one-sided pvalue
