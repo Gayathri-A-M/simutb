@@ -219,7 +219,7 @@ stb_rc_nb_cov <- function(mu, k) {
 #'
 #' Create clinical timeline plot for each patient
 #'
-#' @param cut_t Cut time point for the analysis
+#' @param t Cut time point for the analysis
 #' @param subset_n Number of patients to be included in the plot
 #'
 #' @export
