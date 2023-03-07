@@ -10,7 +10,8 @@ stb_tl_rexp(
   hazard = NULL,
   annual_drop = NULL,
   mth_to_days = 30.4,
-  take_floor = FALSE
+  take_floor = FALSE,
+  ...
 )
 }
 \arguments{

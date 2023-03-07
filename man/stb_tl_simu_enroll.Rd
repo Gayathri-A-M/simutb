@@ -13,17 +13,6 @@ stb_tl_simu_enroll(
   ...
 )
 }
-\arguments{
-\item{ntot}{Total number of patients}
-
-\item{enroll_dur_mth}{enroll duration in months}
-
-\item{min_fu}{minimum follow up in months}
-
-\item{date_bos}{date begin of study}
-
-\item{mth_to_days}{Days in each month}
-}
 \description{
 Simulate Enrollment Time
 }

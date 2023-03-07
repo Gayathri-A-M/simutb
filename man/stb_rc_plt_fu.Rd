@@ -7,9 +7,9 @@
 stb_rc_plt_fu(dat, t = 0, subset_n = 0, seed = NULL)
 }
 \arguments{
-\item{subset_n}{Number of patients to be included in the plot}
+\item{t}{Cut time point for the analysis}
 
-\item{cut_t}{Cut time point for the analysis}
+\item{subset_n}{Number of patients to be included in the plot}
 }
 \description{
 Create clinical timeline plot for each patient

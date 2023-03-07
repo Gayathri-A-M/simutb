@@ -58,7 +58,8 @@ stb_tl_rexp <- function(ntot,
                         hazard       = NULL,
                         annual_drop  = NULL,
                         mth_to_days  = 30.4,
-                        take_floor   = FALSE) {
+                        take_floor   = FALSE,
+                        ...) {
 
     if (is.null(hazard)) {
         hazard <- stb_tl_hazard(median_surv = median_mth,
@@ -124,11 +125,6 @@ stb_tl_pfs_os <- function(day_prog, day_dth, day_censor = NULL) {
 
 #' Simulate Enrollment Time
 #'
-#' @inheritParams stb_simu_trial_single
-#'
-#' @param date_bos date begin of study
-#' @param enroll_dur_mth enroll duration in months
-#' @param min_fu minimum follow up in months
 #'
 #' @export
 #'

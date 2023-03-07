@@ -7,22 +7,56 @@
 ##
 ## -----------------------------------------------------------------------------
 
+#' Describe the design
+#'
+#'
+stratsurv_describe <- function(x, ...) {
+    cat("Type:\n")
+    cat("    Stratified Survival Analysis\n\n")
+    cat("Design Parameters:\n")
+    cat("    target:         target number of events (default 100) \n")
+    cat("    sample_size:    total sample size for treatment and control\n")
+    cat("                    (default 500)\n")
+    cat("    ctl_ratio:      randomization proportion for control \n")
+    cat("                    (default 0.5)\n")
+    cat("    annual_drop:    annual dropout rate (default 0.000001) \n")
+    cat("    enroll_dur_mth: enrollment months (default 18) \n")
+    cat("    stra_freq:      frequency for each stratum \n")
+    cat("                    (default c(0.5, 0.5)) \n")
+    cat("    ctl_median:     control arm median survival months in \n")
+    cat("                    each stratum (default c(15, 15)) \n")
+    cat("    hr:             hazard ratio in each stratum\n")
+    cat("                    (default c(0.7, 0.7)) \n")
+    cat("    date_bos:       begin of study date\n")
+    cat("                    (default 2022-1-1) \n")
+}
 
+#' Default design paramters
+#'
+#'
+stratsurv_default_para <- function() {
+    list(target          = 100,
+         sample_size     = 500,
+         ctl_ratio       = 0.5,
+         annual_drop     = 0.000001,
+         enroll_dur_mth  = 18,
+         stra_freq       = c(0.5, 0.5),
+         ctl_median      = c(15, 15),
+         hr              = c(0.7, 0.7),
+         mth_to_days     = 30.4,
+         date_bos        = as.Date("2022-1-1"))
+}
 
 #' Simulate an arm
 #'
-#' @param annual_drop annual drop rate
 #'
-#'
-#' @export
-#'
-stb_surv_stra_stra_simu <- function(n,
-                                     median_mth,
-                                     enroll_dur_mth,
-                                     annual_drop = 0.05,
-                                     mth_to_days = 30.4,
-                                     date_bos    = as.Date("2022-1-1"),
-                                     ...) {
+strasurv_simu_arm <- function(n,
+                              median_mth,
+                              enroll_dur_mth,
+                              annual_drop = 0.05,
+                              mth_to_days = 30.4,
+                              date_bos    = as.Date("2022-1-1"),
+                              ...) {
 
     dta_enroll <- stb_tl_simu_enroll(n,
                                      enroll_dur_mth,
@@ -54,15 +88,12 @@ stb_surv_stra_stra_simu <- function(n,
                date_os     = date_enroll + day_os)
 }
 
-#' Simulate a trial
-#'
-#' @param annual_drop annual drop rate
+#' Generate data for one trial
 #'
 #'
-#' @export
-#'
-stb_surv_strat_trial_simu <- function(lst_design,
-                                      seed = NULL, ...) {
+strasurv_gen_data <- function(lst_design,
+                              seed = NULL, ...) {
+
     if (!is.null(seed))
         old_seed <- set.seed(seed)
 
@@ -81,11 +112,12 @@ stb_surv_strat_trial_simu <- function(lst_design,
         cur_stra_size  <- stra_size[j]
         for (arm in 1:2) {
             cur_arm <- floor(cur_stra_size * arm_ratio[arm])
-            cur_rst <- stb_surv_stra_stra_simu(
+            cur_rst <- strasurv_simu_arm(
                 n              = cur_arm,
                 median_mth     = median_surv[arm, j],
                 enroll_dur_mth = lst_design$enroll_dur_mth,
                 annual_drop    = lst_design$annual_drop,
+                date_bos       = lst_design$date_bos,
                 ...)
 
             cur_rst$arm     <- arm - 1
