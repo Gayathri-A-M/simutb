@@ -102,6 +102,8 @@ bayes_gen_data <- function(lst_design, seed = NULL, ...) {
 #' Posterior Distribution
 #'
 #'
+#' @export
+#'
 bayes_ana_data <- function(data, prior_by_arm,  ...) {
 
     n_arm    <- nrow(data)
@@ -118,6 +120,8 @@ bayes_ana_data <- function(data, prior_by_arm,  ...) {
 
 #' Decision making
 #'
+#'
+#' @export
 #'
 bayes_ana_decision <- function(rst_post, decision_ref = 1, ...) {
 
