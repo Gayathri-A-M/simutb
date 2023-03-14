@@ -128,13 +128,8 @@ survbiom_gen_data <- function(lst_design, seed = NULL, ...) {
     if (!is.null(seed))
         old_seed <- set.seed(seed)
 
-    ## n_by_arm    <- rmultinom(1,
-    ##                          lst_design$sample_size,
-    ##                          lst_design$ratio_by_arm)
-    n_by_arm           <- lst_design$sample_size
-    n_by_arm           <- n_by_arm * lst_design$ratio_by_arm
-    n_by_arm           <- n_by_arm / sum(lst_design$ratio_by_arm)
-    n_by_arm           <- floor(n_by_arm)
+    n_by_arm <- tl_draw_arm_size(sample_size  = lst_design$sample_size,
+                                 ratio_by_arm = lst_design$ratio_by_arm)
 
     p_biom_by_arm      <- lst_design$p_biom_by_arm
     median_surv_by_arm <- lst_design$median_surv_by_arm

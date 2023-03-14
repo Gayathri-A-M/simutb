@@ -22,7 +22,9 @@
 stb_create_design <- function(type = c("surv_strat",
                                        "surv_or",
                                        "surv_join",
-                                       "surv_biom")) {
+                                       "surv_biom",
+                                       "bayes_1arm",
+                                       "bayes_2arm")) {
 
     type <- match.arg(type)
     rst  <- switch(type,
@@ -30,6 +32,8 @@ stb_create_design <- function(type = c("surv_strat",
                    surv_or    = new("STB_DESIGN_SURV_OR"),
                    surv_join  = new("STB_DESIGN_SURV_JOIN"),
                    surv_biom  = new("STB_DESIGN_SURV_BIOM"),
+                   bayes_1arm = new("STB_DESIGN_BAYES_1ARM"),
+                   bayes_2arm = new("STB_DESIGN_BAYES_2ARM"),
                    new("STB_DESIGN"))
 
     rst
@@ -126,8 +130,15 @@ setMethod("stb_analyze_data",
 setMethod("stb_create_trial",
           "STB_DESIGN",
           function(x, seed = NULL, ...) {
-              data   <- stb_generate_data(x, seed = seed, ...)
+
+              if (!is.null(seed))
+                  old_seed <- set.seed(seed)
+
+              data   <- stb_generate_data(x, ...)
               result <- stb_analyze_data(x, data)
+
+              if (!is.null(seed))
+                  set.seed(old_seed)
 
               new("STB_TRIAL",
                   design = x,
@@ -196,7 +207,7 @@ setMethod("stb_create_simustudy",
                   set.seed(old_seed)
 
               new("STB_SIMU_STUDY",
-                  design = x,
+                  design      = x,
                   n_rep       = n_rep,
                   n_core      = n_core,
                   rst_raw     = rst_raw,
@@ -528,4 +539,88 @@ setMethod("stb_simu_gen_key",
               rst <- survbiom_simu_key(lst,
                                        x@design_para)
               list(rst_key = rst)
+          })
+
+
+## -----------------------------------------------------------------------------
+##                        bayesian 1- and 2-arm design
+## -----------------------------------------------------------------------------
+
+setClass("STB_DESIGN_BAYES",
+         contains = "STB_DESIGN")
+
+setMethod("stb_describe",
+          "STB_DESIGN_BAYES",
+          function(x, ...) {
+              callNextMethod()
+              bayes_describe(x, ...)
+          })
+
+setMethod("stb_generate_data",
+          "STB_DESIGN_BAYES",
+          function(x, ...) {
+              bayes_gen_data(x@design_para, ...)
+          })
+
+setMethod("stb_analyze_data",
+          "STB_DESIGN_BAYES",
+          function(x, data, ...) {
+              callNextMethod()
+              rst_post <- bayes_ana_data(
+                  data,
+                  x@design_para$prior_by_arm,
+                  n_post = x@design_para$n_post,
+                  x      = x@design_para$x_post,
+                  ...)
+
+              rst_decision <- bayes_ana_decision(
+                  rst_post,
+                  decision_ref    = x@design_para$decision_ref,
+                  decision_h0     = x@design_para$decision_h0,
+                  decision_gl     = x@design_para$decision_gl,
+                  decision_thresh = x@design_para$decision_thresh)
+
+              list(rst_post    = rst_post,
+                   rst_diff    = rst_decision$rst_diff,
+                   rst_success = rst_decision$rst_success)
+          })
+
+setMethod("stb_simu_gen_raw",
+          "STB_DESIGN_BAYES",
+          function(x, lst, ...) {
+              rst <- list()
+              for (i in seq_len(length(lst))) {
+                  cur_lst     <- data.frame(lst[[i]]$rst_success)
+                  cur_lst$rep <- i
+                  rst[[i]]    <- cur_lst
+              }
+
+              list(rbindlist(rst))
+          })
+
+setMethod("stb_simu_gen_summary",
+          "STB_DESIGN_BAYES",
+          function(x, lst, ...) {
+              rst <- lst[[1]] %>%
+                  group_by(arm) %>%
+                  summarize(success = mean(success))
+              list(rst)
+          })
+
+setClass("STB_DESIGN_BAYES_1ARM",
+         contains = "STB_DESIGN_BAYES")
+
+setMethod("stb_set_default_para",
+          "STB_DESIGN_BAYES_1ARM",
+          function(x) {
+              internal_bayes1arm_dpara()
+          })
+
+setClass("STB_DESIGN_BAYES_2ARM",
+         contains = "STB_DESIGN_BAYES")
+
+setMethod("stb_set_default_para",
+          "STB_DESIGN_BAYES_2ARM",
+          function(x) {
+              internal_bayes2arm_dpara()
           })

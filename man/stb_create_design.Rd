@@ -4,7 +4,9 @@
 \alias{stb_create_design}
 \title{Create a Study Design}
 \usage{
-stb_create_design(type = c("surv_strat", "surv_or", "surv_join", "surv_biom"))
+stb_create_design(
+  type = c("surv_strat", "surv_or", "surv_join", "surv_biom", "bayes_1arm", "bayes_2arm")
+)
 }
 \description{
 Create a Study Design
