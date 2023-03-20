@@ -49,3 +49,16 @@ tl_draw_arm_size <- function(sample_size,
 
     n_by_arm
 }
+
+#'  Log-Normal mean and variance
+#'
+#'
+#' @export
+#'
+tl_lognorm_par <- function(norm_mu, norm_sigma) {
+    mu     <- exp(norm_mu + norm_sigma^2 / 2)
+    sigma2 <- exp(norm_sigma^2) - 1
+    sigma2 <- sigma2 * exp(2 * norm_mu + norm_sigma^2)
+
+    list(mean = mu, sd = sqrt(sigma2))
+}

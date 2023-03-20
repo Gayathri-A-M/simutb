@@ -2,7 +2,9 @@
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
 ##
-##             DEFINE SIMULATION TOOLBOX CLASSES
+##   DESCRIPTION:
+##       DEFINE SIMULATION TOOLBOX GENERIC FUNCTIONS
+##
 ##
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
@@ -10,47 +12,17 @@
 
 
 ## -----------------------------------------------------------------------------
-##                        helper function
-## -----------------------------------------------------------------------------
-
-#' Create a Study Design
-#'
-#'
-#'
-#' @export
-#'
-stb_create_design <- function(type = c("surv_strat",
-                                       "surv_or",
-                                       "surv_join",
-                                       "surv_biom",
-                                       "bayes_1arm",
-                                       "bayes_2arm")) {
-
-    type <- match.arg(type)
-    rst  <- switch(type,
-                   surv_strat = new("STB_DESIGN_STRAT_SURV"),
-                   surv_or    = new("STB_DESIGN_SURV_OR"),
-                   surv_join  = new("STB_DESIGN_SURV_JOIN"),
-                   surv_biom  = new("STB_DESIGN_SURV_BIOM"),
-                   bayes_1arm = new("STB_DESIGN_BAYES_1ARM"),
-                   bayes_2arm = new("STB_DESIGN_BAYES_2ARM"),
-                   new("STB_DESIGN"))
-
-    rst
-}
-
-## -----------------------------------------------------------------------------
-##                        overall class stb_design
+##                  class stb_design and class stb_dist
 ## -----------------------------------------------------------------------------
 
 setGeneric("stb_describe",
            function(x, ...) standardGeneric("stb_describe"))
 
-setGeneric("stb_get_design_para",
-           function(x) standardGeneric("stb_get_design_para"))
+setGeneric("stb_get_para",
+           function(x) standardGeneric("stb_get_para"))
 
-setGeneric("stb_design_para<-",
-           function(x, value) standardGeneric("stb_design_para<-"))
+setGeneric("stb_para<-",
+           function(x, value) standardGeneric("stb_para<-"))
 
 setGeneric("stb_set_default_para",
            function(x, ...) standardGeneric("stb_set_default_para"))
@@ -83,6 +55,149 @@ setGeneric("stb_simu_gen_key",
            function(x, lst, ...) standardGeneric("stb_simu_gen_key"))
 
 
+## -----------------------------------------------------------------------------
+##                        class stb_trial
+## -----------------------------------------------------------------------------
+
+setGeneric("stb_get_trial_data",
+           function(x) standardGeneric("stb_get_trial_data"))
+
+setGeneric("stb_get_trial_result",
+           function(x) standardGeneric("stb_get_trial_result"))
+
+setGeneric("stb_get_trial_seed",
+           function(x) standardGeneric("stb_get_trial_seed"))
+
+setGeneric("stb_get_trial_design",
+           function(x) standardGeneric("stb_get_trial_design"))
+
+setGeneric("stb_trial_plot",
+           function(x, ...) standardGeneric("stb_trial_plot"))
+
+
+## -----------------------------------------------------------------------------
+##                        class stb_simustudy
+## -----------------------------------------------------------------------------
+
+setGeneric("stb_get_simu_design",
+           function(x) standardGeneric("stb_get_simu_design"))
+
+setGeneric("stb_get_simu_raw",
+           function(x) standardGeneric("stb_get_simu_raw"))
+
+setGeneric("stb_get_simu_summary",
+           function(x) standardGeneric("stb_get_simu_summary"))
+
+setGeneric("stb_get_simu_key",
+           function(x) standardGeneric("stb_get_simu_key"))
+
+setGeneric("stb_get_simu_nrep",
+           function(x) standardGeneric("stb_get_simu_nrep"))
+
+setGeneric("stb_get_simu_seed",
+           function(x) standardGeneric("stb_get_simu_seed"))
+
+
+## -----------------------------------------------------------------------------
+##                        class stb_dist
+## -----------------------------------------------------------------------------
+
+setGeneric("stb_set_para_by_qs",
+           function(x, target_qs, ...) standardGeneric("stb_set_para_by_qs"))
+
+setGeneric("stb_set_para_by_qs_ind",
+           function(x, target_qs, ...)
+               standardGeneric("stb_set_para_by_qs_ind"))
+
+setGeneric("stb_dist_get_qs",
+           function(x, qs) standardGeneric("stb_dist_get_qs"))
+
+
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+##
+##   DESCRIPTION:
+##       HELPER FUNCTIONS
+##
+##
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+
+#' Create a distribution
+#'
+#'
+#'
+#' @export
+#'
+stb_dist_by_qs <- function(type = c("normal",
+                                    "lognormal",
+                                    "beta"),
+                           target_qs = c("0.5" = 0.7,
+                                         "0.8" = 0.9)) {
+
+    type <- match.arg(type)
+    rst  <- switch(type,
+                   normal    = new("STB_DIST_NORMAL"),
+                   lognormal = new("STB_DIST_LOGNORMAL"),
+                   beta      = new("STB_DIST_BETA"),
+                   new("STB_DIST"))
+
+    stb_set_para_by_qs(rst, target_qs = target_qs)
+}
+
+#' Create a Study Design
+#'
+#'
+#'
+#' @export
+#'
+stb_create_design <- function(type = c("surv_strat",
+                                       "surv_or",
+                                       "surv_join",
+                                       "surv_biom",
+                                       "bayes_1arm",
+                                       "bayes_2arm")) {
+
+    type <- match.arg(type)
+    rst  <- switch(type,
+                   surv_strat = new("STB_DESIGN_STRAT_SURV"),
+                   surv_or    = new("STB_DESIGN_SURV_OR"),
+                   surv_join  = new("STB_DESIGN_SURV_JOIN"),
+                   surv_biom  = new("STB_DESIGN_SURV_BIOM"),
+                   bayes_1arm = new("STB_DESIGN_BAYES_1ARM"),
+                   bayes_2arm = new("STB_DESIGN_BAYES_2ARM"),
+                   new("STB_DESIGN"))
+
+    rst
+}
+
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+##
+##   DESCRIPTION:
+##       DEFINE SIMULATION TOOLBOX CLASSES OF DESIGNS
+##
+##
+##   DESIGNS:
+##      1. STB_DESIGN_STRAT_SURV
+##      2. STB_DESIGN_SURV_OR
+##      3. STB_DESIGN_SURV_JOIN
+##      4. STB_DESIGN_SURV_BIOM
+##      5. STB_DESIGN_BAYES_1ARM
+##      6. STB_DESIGN_BAYES_2ARM
+##
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+
+
+## -----------------------------------------------------------------------------
+##                        overall class stb_design
+## -----------------------------------------------------------------------------
+
 #'
 #' @export
 #'
@@ -103,11 +218,11 @@ setMethod("stb_set_default_para",
           "STB_DESIGN",
           function(x) list())
 
-setMethod("stb_get_design_para",
+setMethod("stb_get_para",
           "STB_DESIGN",
           function(x) x@design_para)
 
-setMethod("stb_design_para<-",
+setMethod("stb_para<-",
           "STB_DESIGN",
           function(x, value) {
               x@design_para <- tl_merge_lists(value,
@@ -220,22 +335,6 @@ setMethod("stb_create_simustudy",
 ## -----------------------------------------------------------------------------
 ##                        overall class stb_trial
 ## -----------------------------------------------------------------------------
-
-setGeneric("stb_get_trial_data",
-           function(x) standardGeneric("stb_get_trial_data"))
-
-setGeneric("stb_get_trial_result",
-           function(x) standardGeneric("stb_get_trial_result"))
-
-setGeneric("stb_get_trial_seed",
-           function(x) standardGeneric("stb_get_trial_seed"))
-
-setGeneric("stb_get_trial_design",
-           function(x) standardGeneric("stb_get_trial_design"))
-
-setGeneric("stb_trial_plot",
-           function(x, ...) standardGeneric("stb_trial_plot"))
-
 #'
 #' @export
 #'
@@ -261,24 +360,6 @@ setMethod("stb_trial_plot",
 ## -----------------------------------------------------------------------------
 ##                        overall class stb_simustudy
 ## -----------------------------------------------------------------------------
-
-setGeneric("stb_get_simu_design",
-           function(x) standardGeneric("stb_get_simu_design"))
-
-setGeneric("stb_get_simu_raw",
-           function(x) standardGeneric("stb_get_simu_raw"))
-
-setGeneric("stb_get_simu_summary",
-           function(x) standardGeneric("stb_get_simu_summary"))
-
-setGeneric("stb_get_simu_key",
-           function(x) standardGeneric("stb_get_simu_key"))
-
-setGeneric("stb_get_simu_nrep",
-           function(x) standardGeneric("stb_get_simu_nrep"))
-
-setGeneric("stb_get_simu_seed",
-           function(x) standardGeneric("stb_get_simu_seed"))
 
 #'
 #' @export
@@ -383,7 +464,7 @@ setMethod("stb_set_default_para",
               survjoin_default_para()
           })
 
-setMethod("stb_design_para<-",
+setMethod("stb_para<-",
           "STB_DESIGN_SURV_JOIN",
           function(x, value) {
               x             <- callNextMethod(x, value)
@@ -475,7 +556,7 @@ setMethod("stb_set_default_para",
               survbiom_default_para()
           })
 
-setMethod("stb_design_para<-",
+setMethod("stb_para<-",
           "STB_DESIGN_SURV_BIOM",
           function(x, value) {
               x             <- callNextMethod(x, value)
@@ -624,3 +705,117 @@ setMethod("stb_set_default_para",
           function(x) {
               internal_bayes2arm_dpara()
           })
+
+
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+##
+##   DESCRIPTION:
+##       DEFINE SIMULATION TOOLBOX CLASSES OF DISTRIBUTIONS
+##
+##
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
+
+
+## -----------------------------------------------------------------------------
+##                        overall class stb_dist
+## -----------------------------------------------------------------------------
+
+#'
+#' @export
+#'
+setClass("STB_DIST",
+         slots     = list(dist_para  = "list"),
+         prototype = prototype(dist_para  = list()))
+
+setMethod("stb_get_para",
+          "STB_DIST",
+          function(x) x@dist_para)
+
+setMethod("stb_para<-",
+          "STB_DIST",
+          function(x, value) {
+              x@dist_para <- tl_merge_lists(value,
+                                            x@dist_para)
+              x
+          })
+
+setMethod("stb_set_para_by_qs",
+          "STB_DIST",
+          function(x,
+                   target_qs = c("0.1" = 0.5,
+                                 "0.7" = 0.9),
+                   ...) {
+
+              para  <- stb_set_para_by_qs_ind(x,
+                                              target_qs = target_qs,
+                                              ...)
+              para$target_qs <- target_qs
+              x@dist_para    <- para
+              x
+          })
+
+setClass("STB_DIST_NORMAL",
+         contains  = "STB_DIST",
+         slots     = list(dist_para  = "list"),
+         prototype = prototype(dist_para  = list(mean  = 0,
+                                                 sd    = 1)))
+setMethod("stb_set_para_by_qs_ind",
+          "STB_DIST_NORMAL",
+          function(x, target_qs, ...)
+              stb_dist_normal_para_by_qs(target_qs, ...))
+
+setMethod("stb_dist_get_qs",
+          "STB_DIST_NORMAL",
+          function(x, qs) {
+              rst <- qnorm(qs,
+                           mean = x@dist_para$mean,
+                           sd   = x@dist_para$sd)
+              names(rst) <- qs
+              rst
+          })
+
+
+setClass("STB_DIST_BETA",
+         contains  = "STB_DIST",
+         slots     = list(dist_para  = "list"),
+         prototype = prototype(dist_para  = list(shape1 = 1,
+                                                 shape2 = 1)))
+setMethod("stb_set_para_by_qs_ind",
+          "STB_DIST_BETA",
+          function(x, target_qs, ...)
+              stb_dist_beta_para_by_qs(target_qs, ...))
+
+setMethod("stb_dist_get_qs",
+          "STB_DIST_BETA",
+          function(x, qs) {
+              rst <- qbeta(qs,
+                           shape1 = x@dist_para$shape1,
+                           shape2 = x@dist_para$shape2)
+              names(rst) <- qs
+              rst})
+
+setClass("STB_DIST_LOGNORMAL",
+         contains  = "STB_DIST",
+         slots     = list(dist_para  = "list"),
+         prototype = prototype(dist_para  = list(mean = 1,
+                                                 sd   = 1)))
+
+setMethod("stb_set_para_by_qs_ind",
+          "STB_DIST_LOGNORMAL",
+          function(x, target_qs, ...)
+              stb_dist_lognormal_para_by_qs(target_qs, ...))
+
+setMethod("stb_dist_get_qs",
+          "STB_DIST_LOGNORMAL",
+          function(x, qs) {
+              rst <- qnorm(qs,
+                           mean = x@dist_para$norm_mean,
+                           sd   = x@dist_para$norm_sd)
+
+              rst        <- exp(rst)
+              names(rst) <- qs
+              rst})
