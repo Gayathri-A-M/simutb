@@ -214,14 +214,23 @@ setMethod("initialize",
               .Object
           })
 
+#'
+#' @export
+#'
 setMethod("stb_set_default_para",
           "STB_DESIGN",
           function(x) list())
 
+#'
+#' @export
+#'
 setMethod("stb_get_para",
           "STB_DESIGN",
           function(x) x@design_para)
 
+#'
+#' @export
+#'
 setMethod("stb_para<-",
           "STB_DESIGN",
           function(x, value) {
@@ -230,18 +239,30 @@ setMethod("stb_para<-",
               x
           })
 
+#'
+#' @export
+#'
 setMethod("stb_describe",
           "STB_DESIGN",
           function(x, ...) NULL)
 
+#'
+#' @export
+#'
 setMethod("stb_generate_data",
           "STB_DESIGN",
           function(x, ...) NULL)
 
+#'
+#' @export
+#'
 setMethod("stb_analyze_data",
           "STB_DESIGN",
           function(x, data, ...) list())
 
+#'
+#' @export
+#'
 setMethod("stb_create_trial",
           "STB_DESIGN",
           function(x, seed = NULL, ...) {
@@ -262,19 +283,31 @@ setMethod("stb_create_trial",
                   seed   = seed)
           })
 
+#'
+#' @export
+#'
 setMethod("stb_simu_gen_raw",
           "STB_DESIGN",
           function(x, lst, ...) list())
 
+#'
+#' @export
+#'
 setMethod("stb_simu_gen_summary",
           "STB_DESIGN",
           function(x, lst, ...) list())
 
+#'
+#' @export
+#'
 setMethod("stb_simu_gen_key",
           "STB_DESIGN",
           function(x, lst, ...) list())
 
 
+#'
+#' @export
+#'
 setMethod("stb_create_simustudy",
           "STB_DESIGN",
           function(x,
@@ -346,11 +379,29 @@ setClass("STB_TRIAL",
          prototype = prototype(seed   = NULL,
                                result = NULL))
 
+#'
+#' @export
+#'
 setMethod("stb_get_trial_data",   "STB_TRIAL", function(x) x@data)
+
+#'
+#' @export
+#'
 setMethod("stb_get_trial_result", "STB_TRIAL", function(x) x@result)
+
+#'
+#' @export
+#'
 setMethod("stb_get_trial_design", "STB_TRIAL", function(x) x@design)
+
+#'
+#' @export
+#'
 setMethod("stb_get_trial_seed",   "STB_TRIAL", function(x) x@seed)
 
+#'
+#' @export
+#'
 setMethod("stb_trial_plot",
           "STB_TRIAL",
           function(x, ...) {
@@ -374,11 +425,34 @@ setClass("STB_SIMU_STUDY",
                       seed        = "numeric"))
 
 
+#'
+#' @export
+#'
 setMethod("stb_get_simu_design",   "STB_SIMU_STUDY", function(x) x@design)
+
+#'
+#' @export
+#'
 setMethod("stb_get_simu_raw",      "STB_SIMU_STUDY", function(x) x@rst_raw)
+
+#'
+#' @export
+#'
 setMethod("stb_get_simu_summary",  "STB_SIMU_STUDY", function(x) x@rst_summary)
+
+#'
+#' @export
+#'
 setMethod("stb_get_simu_key",      "STB_SIMU_STUDY", function(x) x@rst_key)
+
+#'
+#' @export
+#'
 setMethod("stb_get_simu_nrep",     "STB_SIMU_STUDY", function(x) x@n_rep)
+
+#'
+#' @export
+#'
 setMethod("stb_get_simu_seed",     "STB_SIMU_STUDY", function(x) x@seed)
 
 
@@ -627,6 +701,9 @@ setMethod("stb_simu_gen_key",
 ##                        bayesian 1- and 2-arm design
 ## -----------------------------------------------------------------------------
 
+#'
+#' @export
+#'
 setClass("STB_DESIGN_BAYES",
          contains = "STB_DESIGN")
 
@@ -688,6 +765,9 @@ setMethod("stb_simu_gen_summary",
               list(rst)
           })
 
+#'
+#' @export
+#'
 setClass("STB_DESIGN_BAYES_1ARM",
          contains = "STB_DESIGN_BAYES")
 
@@ -697,6 +777,9 @@ setMethod("stb_set_default_para",
               internal_bayes1arm_dpara()
           })
 
+#'
+#' @export
+#'
 setClass("STB_DESIGN_BAYES_2ARM",
          contains = "STB_DESIGN_BAYES")
 
@@ -758,6 +841,9 @@ setMethod("stb_set_para_by_qs",
               x
           })
 
+#'
+#' @export
+#'
 setClass("STB_DIST_NORMAL",
          contains  = "STB_DIST",
          slots     = list(dist_para  = "list"),
@@ -779,6 +865,9 @@ setMethod("stb_dist_get_qs",
           })
 
 
+#'
+#' @export
+#'
 setClass("STB_DIST_BETA",
          contains  = "STB_DIST",
          slots     = list(dist_para  = "list"),
@@ -798,17 +887,26 @@ setMethod("stb_dist_get_qs",
               names(rst) <- qs
               rst})
 
+#'
+#' @export
+#'
 setClass("STB_DIST_LOGNORMAL",
          contains  = "STB_DIST",
          slots     = list(dist_para  = "list"),
          prototype = prototype(dist_para  = list(mean = 1,
                                                  sd   = 1)))
 
+#'
+#' @export
+#'
 setMethod("stb_set_para_by_qs_ind",
           "STB_DIST_LOGNORMAL",
           function(x, target_qs, ...)
               stb_dist_lognormal_para_by_qs(target_qs, ...))
 
+#'
+#' @export
+#'
 setMethod("stb_dist_get_qs",
           "STB_DIST_LOGNORMAL",
           function(x, qs) {
