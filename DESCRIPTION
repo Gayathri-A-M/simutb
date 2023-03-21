@@ -16,7 +16,13 @@ Depends:
     dplyr,
     survival (>= 3.4)
 Imports:
-    parallel (>= 3.2)
+    data.table,
+    ggplot2,
+    mvtnorm,
+    parallel (>= 3.2),
+    rpact,
+    survminer,
+    tidyr
 LinkingTo:
     Rcpp (>= 1.0.2)
 RcppModules:
@@ -25,5 +31,6 @@ LazyData: true
 NeedsCompilation: yes
 SystemRequirements: GNU make
 RoxygenNote: 7.2.3
-Suggests:
 VignetteBuilder: knitr
+Suggests: 
+    knitr
