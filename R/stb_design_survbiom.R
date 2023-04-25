@@ -567,10 +567,10 @@ stb_surv_biom_arm_simu <- function(n,
         old_seed <- set.seed(seed)
 
     smp_biom   <- rmultinom(1, n, p_biomarker)
-    dta_enroll <- stb_tl_simu_enroll(n,
-                                     enroll_dur_mth,
-                                     date_bos    = date_bos,
-                                     ...)
+    dta_enroll <- stb_tl_simu_enroll_arc(n,
+                                         enroll_dur_mth,
+                                         date_bos    = date_bos,
+                                         ...)
     dta_censor <- stb_tl_rexp(n,
                               median_mth  = NULL,
                               hazard      = NULL,

@@ -58,11 +58,11 @@ strasurv_simu_arm <- function(n,
                               date_bos    = as.Date("2022-1-1"),
                               ...) {
 
-    dta_enroll <- stb_tl_simu_enroll(n,
-                                     enroll_dur_mth,
-                                     mth_to_days = 30.4,
-                                     date_bos    = date_bos,
-                                     ...)
+    dta_enroll <- stb_tl_simu_enroll_arc(n,
+                                         enroll_dur_mth,
+                                         mth_to_days = 30.4,
+                                         date_bos    = date_bos,
+                                         ...)
 
     dta_event  <- stb_tl_rexp(n,
                               median_mth  = median_mth,

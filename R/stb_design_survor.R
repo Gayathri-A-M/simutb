@@ -77,8 +77,8 @@ survor_gen_data <- function(sample_size      = 100,
                            ...) {
 
     ## enrollment
-    dta_enroll <- stb_tl_simu_enroll(sample_size, enroll_dur_mth,
-                                     date_bos = date_bos, min_fu = min_fu)
+    dta_enroll <- stb_tl_simu_enroll_arc(sample_size, enroll_dur_mth,
+                                         date_bos = date_bos, min_fu = min_fu)
 
     ## overall response
     dta_or     <- stb_simu_or(dta_enroll, p_or = p_or)

@@ -500,10 +500,10 @@ stb_surv_join_arm_simu <- function(n,
                                    date_bos    = as.Date("2022-1-1"),
                                    ...) {
 
-    dta_enroll <- stb_tl_simu_enroll(n,
-                                     enroll_dur_mth,
-                                     date_bos    = date_bos,
-                                     ...)
+    dta_enroll <- stb_tl_simu_enroll_arc(n,
+                                         enroll_dur_mth,
+                                         date_bos    = date_bos,
+                                         ...)
 
     dta_censor <- stb_tl_rexp(n,
                               median_mth  = NULL,

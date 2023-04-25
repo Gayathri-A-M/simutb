@@ -123,43 +123,6 @@ stb_tl_pfs_os <- function(day_prog, day_dth, day_censor = NULL) {
     rst
 }
 
-#' Simulate Enrollment Time
-#'
-#'
-#' @export
-#'
-stb_tl_simu_enroll <- function(ntot,
-                               enroll_dur_mth,
-                               min_fu      = NULL,
-                               date_bos    = NULL,
-                               mth_to_days = 30.4,
-                               ...) {
-
-    rand_enroll <- runif(ntot, 0, enroll_dur_mth)
-    day_enroll  <- rand_enroll * mth_to_days
-
-    rst <- data.frame(sid        = seq_len(ntot),
-                      day_enroll = day_enroll)
-
-    ## set up dates in addition to days
-    if (!is.null(date_bos)) {
-        rst$date_bos    <- date_bos
-        rst$date_enroll <- date_bos + day_enroll
-    }
-
-    ## set up end of study time by minimum follow up
-    if (!is.null(min_fu)) {
-        day_eos      <- max(rand_enroll) + min_fu
-        day_eos      <- day_eos * mth_to_days
-        day_eos      <- floor(day_eos)
-        rst$day_eos  <- day_eos - day_enroll
-        rst$date_eos <- date_bos + day_eos
-    }
-
-    ## return
-    rst
-}
-
 #' Simulate from piecewise constant exponential
 #'
 #'

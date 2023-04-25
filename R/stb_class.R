@@ -39,6 +39,9 @@ setGeneric("stb_plot_data",
 setGeneric("stb_create_trial",
            function(x, ...) standardGeneric("stb_create_trial"))
 
+setGeneric("stb_create_analysis_set",
+           function(x, ...) standardGeneric("stb_create_analysis_set"))
+
 setGeneric("stb_create_simustudy",
            function(x,
                     n_rep  = 5,
@@ -158,7 +161,8 @@ stb_create_design <- function(type = c("surv_strat",
                                        "surv_join",
                                        "surv_biom",
                                        "bayes_1arm",
-                                       "bayes_2arm")) {
+                                       "bayes_2arm",
+                                       "rcurrent")) {
 
     type <- match.arg(type)
     rst  <- switch(type,
@@ -168,6 +172,7 @@ stb_create_design <- function(type = c("surv_strat",
                    surv_biom  = new("STB_DESIGN_SURV_BIOM"),
                    bayes_1arm = new("STB_DESIGN_BAYES_1ARM"),
                    bayes_2arm = new("STB_DESIGN_BAYES_2ARM"),
+                   rcurrent   = new("STB_DESIGN_RCURRENT"),
                    new("STB_DESIGN"))
 
     rst
@@ -188,6 +193,7 @@ stb_create_design <- function(type = c("surv_strat",
 ##      4. STB_DESIGN_SURV_BIOM
 ##      5. STB_DESIGN_BAYES_1ARM
 ##      6. STB_DESIGN_BAYES_2ARM
+##      7. STB_DESIGN_RCURRENT
 ##
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
@@ -252,6 +258,14 @@ setMethod("stb_describe",
 setMethod("stb_generate_data",
           "STB_DESIGN",
           function(x, ...) NULL)
+
+#'
+#' @export
+#'
+setMethod("stb_create_analysis_set",
+          "STB_DESIGN",
+          function(x, ...) NULL)
+
 
 #'
 #' @export
@@ -368,6 +382,7 @@ setMethod("stb_create_simustudy",
 ## -----------------------------------------------------------------------------
 ##                        overall class stb_trial
 ## -----------------------------------------------------------------------------
+
 #'
 #' @export
 #'
@@ -398,6 +413,14 @@ setMethod("stb_get_trial_design", "STB_TRIAL", function(x) x@design)
 #' @export
 #'
 setMethod("stb_get_trial_seed",   "STB_TRIAL", function(x) x@seed)
+
+#'
+#' @export
+#'
+setMethod("stb_create_analysis_set", "STB_TRIAL", function(x, ...) {
+    stb_create_analysis_set(x@design, x@data, ...)
+})
+
 
 #'
 #' @export
@@ -787,6 +810,70 @@ setMethod("stb_set_default_para",
           "STB_DESIGN_BAYES_2ARM",
           function(x) {
               internal_bayes2arm_dpara()
+          })
+
+
+## -----------------------------------------------------------------------------
+##                        recurrent event
+## -----------------------------------------------------------------------------
+
+#'
+#' @export
+#'
+setClass("STB_DESIGN_RCURRENT",
+         contains = "STB_DESIGN")
+
+setMethod("stb_describe",
+          "STB_DESIGN_RCURRENT",
+          function(x, ...) {
+              callNextMethod()
+              rcurrent_describe(x, ...)
+          })
+
+setMethod("stb_set_default_para",
+          "STB_DESIGN_RCURRENT",
+          function(x) {
+              internal_rcurrent_dpara()
+          })
+
+setMethod("stb_generate_data",
+          "STB_DESIGN_RCURRENT",
+          function(x, ...) {
+              rcurrent_gen_data(x@design_para, ...)
+          })
+
+#'
+#' @export
+#'
+setMethod("stb_create_analysis_set",
+          "STB_DESIGN_RCURRENT",
+          function(x, trial_data,
+                   type          = c("min_fu", "fix_fu"),
+                   fu_days       = 12 * 7,
+                   min_fu_days   = 12 * 7,
+                   pt_proportion = 1) {
+
+
+              if (is.null(trial_data))
+                  return(NULL)
+
+              type     <- match.arg(type)
+              dat_full <- switch(
+                  type,
+                  min_fu = rcurrent_day_eos_1(trial_data,
+                                              min_fu_days   = min_fu_days,
+                                              pt_proportion = pt_proportion),
+
+                  fix_fu = rcurrent_day_eos_2(trial_data,
+                                              fu_days       = fu_days,
+                                              pt_proportion = pt_proportion)
+              )
+
+              dat_full <- rcurrent_censor(dat_full)
+              dat_nb   <- rcurrent_get_nb(dat_full)
+
+              list(data    = dat_full,
+                   data_nb = dat_nb)
           })
 
 
