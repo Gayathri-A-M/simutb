@@ -81,7 +81,8 @@ rcurrent_gen_data <- function(lst_design, seed = NULL, ...) {
     rst <- dat_enroll %>%
         left_join(rst, by = c("arm", "sid" = "id")) %>%
         mutate(day_start = day_enroll + start,
-               day_end   = day_enroll + end)
+               day_end   = day_enroll + end,
+               sid       = sid + arm * lst_design$sample_size)
 
 
     ## reset

@@ -1,8 +1,18 @@
+## -----------------------------------------------------------------------------
+##
+##  DESCRIPTION:
+##      This file contains R functions for multiple testing procedures
+##
+##  DATE:
+##      DEC, 2022
+## -----------------------------------------------------------------------------
+
+
 
 #' Hochberg multiplicity control
 #'
 #' @export
-stb_multi_hochberg <- function(pvals_0, alpha = 0.05, ...) {
+stb_tl_mcp_hochberg <- function(pvals_0, alpha = 0.05, ...) {
     p_inx <- order(pvals_0, decreasing = TRUE)
     pvals <- pvals_0[p_inx]
 
@@ -20,7 +30,7 @@ stb_multi_hochberg <- function(pvals_0, alpha = 0.05, ...) {
 #' Holmes multiplicity control
 #'
 #' @export
-stb_multi_holms <- function(pvals, alpha = 0.05, ...) {
+stb_tl_mcp_holms <- function(pvals, alpha = 0.05, ...) {
     p_inx <- order(pvals)
     pvals <- pvals[p_inx]
     k     <- length(pvals)
@@ -39,7 +49,7 @@ stb_multi_holms <- function(pvals, alpha = 0.05, ...) {
 #' Hierarchical
 #'
 #' @export
-stb_multi_hierarchi <- function(pvals, alpha  = 0.05, p_inx = NULL,  ...) {
+stb_tl_mcp_hierarchi <- function(pvals, alpha  = 0.05, p_inx = NULL,  ...) {
     k <- length(pvals)
     if (is.null(p_inx)) {
         p_inx <- seq_len(k)

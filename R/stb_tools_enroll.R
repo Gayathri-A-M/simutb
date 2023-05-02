@@ -22,7 +22,7 @@ stb_tl_simu_enroll_arc <- function(ntot,
                                    ...) {
 
     rand_enroll <- runif(ntot, 0, enroll_dur_mth)
-    day_enroll  <- rand_enroll * mth_to_days
+    day_enroll  <- ceiling(rand_enroll * mth_to_days)
 
     rst <- data.frame(sid        = seq_len(ntot),
                       day_enroll = day_enroll)

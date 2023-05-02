@@ -62,3 +62,16 @@ tl_lognorm_par <- function(norm_mu, norm_sigma) {
 
     list(mean = mu, sd = sqrt(sigma2))
 }
+
+
+#' Get X Beta by formula
+#'
+#'
+#'
+tl_xbeta <- function(data, fml, beta) {
+    fml     <- as.formula(fml)
+    des_mat <- model.matrix(fml, data = data)
+    rst     <- apply(des_mat, 1, function(x) sum(beta * x))
+
+    rst
+}

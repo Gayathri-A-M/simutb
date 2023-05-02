@@ -22,6 +22,8 @@
 #' @importFrom rpact getDesignGroupSequential
 #' @importFrom mvtnorm rmvnorm pmvnorm dmvnorm
 #' @importFrom survminer ggsurvplot ggsurvplot_facet
+#' @importFrom mmrm mmrm df_1d
+#' @importFrom brms brm as_draws_matrix
 #'
 #'
 NULL
