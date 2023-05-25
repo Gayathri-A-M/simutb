@@ -15,7 +15,7 @@
 ##      6. STB_DESIGN_BAYES_2ARM
 ##      7. STB_DESIGN_RCURRENT
 ##      8. STB_DESIGN_RMEASURE
-##
+##      9. STB_DESIGN_MSMA_SURV
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
@@ -38,7 +38,8 @@ stb_create_design <- function(type = c("surv_strat",
                                        "bayes_1arm",
                                        "bayes_2arm",
                                        "rcurrent",
-                                       "rmeasure")) {
+                                       "rmeasure",
+                                       "msma_surv")) {
 
     type <- match.arg(type)
     rst  <- switch(type,
@@ -50,6 +51,7 @@ stb_create_design <- function(type = c("surv_strat",
                    bayes_2arm = new("STB_DESIGN_BAYES_2ARM"),
                    rcurrent   = new("STB_DESIGN_RCURRENT"),
                    rmeasure   = new("STB_DESIGN_RMEASURE"),
+                   msma_surv  = new("STB_DESIGN_MSMA_SURV"),
                    new("STB_DESIGN"))
 
     rst
@@ -510,7 +512,7 @@ setMethod("stb_analyze_data",
           "STB_DESIGN_RMEASURE",
           function(x, data_ana, par_analysis = NULL, ...) {
 
-              if (is.null(data))
+              if (is.null(data_ana))
                   return(NULL)
 
               if (is.null(par_analysis))
@@ -542,5 +544,51 @@ setMethod("stb_simu_gen_summary",
           "STB_DESIGN_RMEASURE",
           function(x, lst, ...) {
               rst <- rmeasure_simu_summary(lst, ...)
+              rst
+          })
+
+## -----------------------------------------------------------------------------
+##                        msma with survival outcome
+## -----------------------------------------------------------------------------
+
+#'
+#' @export
+#'
+setClass("STB_DESIGN_MSMA_SURV",
+         contains = "STB_DESIGN")
+
+setMethod("stb_describe",
+          "STB_DESIGN_MSMA_SURV",
+          function(x, ...) {
+              callNextMethod()
+              msma_surv_describe(x, ...)
+          })
+
+setMethod("stb_set_default_para",
+          "STB_DESIGN_MSMA_SURV",
+          function(x) {
+              internal_msma_surv_dpara()
+          })
+
+setMethod("stb_generate_data",
+          "STB_DESIGN_MSMA_SURV",
+          function(x, ...) {
+              msma_surv_gen_data(x@design_para, ...)
+          })
+
+setMethod("stb_analyze_data",
+          "STB_DESIGN_MSMA_SURV",
+          function(x, data_ana, par_analysis = NULL, ...) {
+
+              if (is.null(par_analysis))
+                  par_analysis <- x@design_para$par_analysis
+
+              list(msma_surv_ana_logrank(data_ana[[1]]))
+          })
+
+setMethod("stb_simu_gen_summary",
+          "STB_DESIGN_MSMA_SURV",
+          function(x, lst, ...) {
+              rst <- msma_surv_simu_summary(lst, ...)
               rst
           })

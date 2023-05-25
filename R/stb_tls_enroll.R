@@ -10,7 +10,7 @@
 
 #' Simulate Enrollment Time
 #'
-#' An archived version of enrollment simulation
+#' An archived version of enrollment simulation (archived function)
 #'
 #' @export
 #'
@@ -99,6 +99,8 @@ stb_tl_simu_enroll_by_center <- function(n_pt,
 
 #' Simulate Enrollment Time
 #'
+#' @param mth_fix_fu fixed follow-up months for all patients
+#' @param mth_min_fu minimum follow-up months for all patients
 #'
 #' @export
 #'
@@ -106,6 +108,7 @@ stb_tl_simu_enroll <- function(n_pt        = 100,
                                par_enroll  = list(type       = "by_duration",
                                                   pt_dur_mth = 24),
                                mth_min_fu  = NULL,
+                               mth_fix_fu  = NULL,
                                date_bos    = "2022-01-01",
                                mth_to_days = 30.4,
                                ...) {
@@ -129,12 +132,21 @@ stb_tl_simu_enroll <- function(n_pt        = 100,
         rst$date_enroll <- as.Date(date_bos) + rst$day_enroll
     }
 
-    ## set up end of study time by minimum follow up
+    ## set up end of study time by minimum or fixed follow up
+    day_chk <- NULL
     if (!is.null(mth_min_fu)) {
-        day_eos      <- max(rst$day_enroll) + min_fu * mth_to_days
+        day_chk <- max(rst$day_enroll)
+        min_fu  <- mth_min_fu
+    } else if (!is.null(mth_fix_fu)) {
+        day_chk <- rst$day_enroll
+        min_fu  <- mth_fix_fu
+    }
+
+    if (!is.null(day_chk)) {
+        day_eos      <- day_chk + min_fu * mth_to_days
         day_eos      <- floor(day_eos)
         rst$day_eos  <- day_eos - rst$day_enroll
-        rst$date_eos <- date_bos + day_eos
+        rst$date_eos <- rst$date_bos + day_eos
     }
 
     ## return
