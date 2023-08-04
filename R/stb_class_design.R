@@ -16,6 +16,8 @@
 ##      7. STB_DESIGN_RCURRENT
 ##      8. STB_DESIGN_RMEASURE
 ##      9. STB_DESIGN_MSMA_SURV
+##     10: STB_DESIGN_DOSE_FIX
+##
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
@@ -39,7 +41,8 @@ stb_create_design <- function(type = c("surv_strat",
                                        "bayes_2arm",
                                        "rcurrent",
                                        "rmeasure",
-                                       "msma_surv")) {
+                                       "msma_surv",
+                                       "dose_fix")) {
 
     type <- match.arg(type)
     rst  <- switch(type,
@@ -52,12 +55,11 @@ stb_create_design <- function(type = c("surv_strat",
                    rcurrent   = new("STB_DESIGN_RCURRENT"),
                    rmeasure   = new("STB_DESIGN_RMEASURE"),
                    msma_surv  = new("STB_DESIGN_MSMA_SURV"),
+                   dose_fix   = new("STB_DESIGN_DOSE_FIX"),
                    new("STB_DESIGN"))
 
     rst
 }
-
-
 
 
 ## -----------------------------------------------------------------------------
@@ -590,5 +592,71 @@ setMethod("stb_simu_gen_summary",
           "STB_DESIGN_MSMA_SURV",
           function(x, lst, ...) {
               rst <- msma_surv_simu_summary(lst, ...)
+              rst
+          })
+
+
+## -----------------------------------------------------------------------------
+##                        Dose escaltion for FIX study
+## -----------------------------------------------------------------------------
+#'
+#' @export
+#'
+setClass("STB_DESIGN_DOSE_FIX",
+         contains = "STB_DESIGN")
+
+setMethod("stb_describe",
+          "STB_DESIGN_DOSE_FIX",
+          function(x, ...) {
+              callNextMethod()
+              desfix_describe(x, ...)
+          })
+
+setMethod("stb_set_default_para",
+          "STB_DESIGN_DOSE_FIX",
+          function(x) {
+              internal_desfix_dpara()
+          })
+
+setMethod("stb_plot_design",
+          "STB_DESIGN_DOSE_FIX",
+          function(x, ...) {
+              desfix_plot_scenario(x@design_para, ...)
+          })
+
+setMethod("stb_generate_data",
+          "STB_DESIGN_DOSE_FIX",
+          function(x, ...) {
+              desfix_gen_data(x@design_para, ...)
+          })
+
+setMethod("stb_analyze_data",
+          "STB_DESIGN_DOSE_FIX",
+          function(x, data_ana, ...) {
+              rst <- desfix_single_trial(data_ana[[1]],
+                                         lst_design = x@design_para,
+                                         ...)
+
+              list(rst)
+          })
+
+setMethod("stb_simu_gen_raw",
+          "STB_DESIGN_DOSE_FIX",
+          function(x, lst, ...) {
+              n_reps  <- length(lst)
+              rst     <- list()
+              for (i in seq_len(length(lst))) {
+                  rst[[i]]  <- lst[[i]][[1]] %>% mutate(rep = i)
+              }
+
+              list(n_reps = n_reps,
+                   rst    = rbindlist(rst))
+          })
+
+setMethod("stb_simu_gen_summary",
+          "STB_DESIGN_DOSE_FIX",
+          function(x, lst, ...) {
+              rst <- desfix_summary(
+                  lst$rst, x@design_para, ...)
               rst
           })

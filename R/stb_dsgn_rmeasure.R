@@ -101,7 +101,7 @@ rmeasure_gen_data <- function(lst_design, seed = NULL, ...) {
         rst <- rbind(rst, cur_rst)
     }
 
-    ## merget data
+    ## merge data
     rst <- dat_enroll %>%
         left_join(rst, by = c("arm", "sid")) %>%
         mutate(day_visit = day_enroll + visit_day,

@@ -107,12 +107,21 @@ sim_dd <- reactive({
             trt_phat  <- sum(trt_dt)  / trt_n[yy]
             cont_phat <- sum(cont_dt) / cont_n[yy]
 
+            ## ----------------------------------------------------------------
             ## Sample data Comparison
+
+            ## It should be more straightforward to get samples of treatment and
+            ## control response rates from their posterior beta distributions.
+            ## Then you can get LCL numerically
+
+            ## Why 5? It should not be fixed in the code and it does not have to
+            ## be same as the data generation prior.
             diff     <- trt_phat - cont_phat     # Sample treatment difference
             ## Sample pooled response rate
             pooled_p <- (sum(trt_dt) + sum(cont_dt)) / (trt_n[yy] + cont_n[yy])
             se_CrI   <- sqrt(pooled_p * (1 - pooled_p) *
                              ((1 / (trt_n[yy] + 5)) + (1 / (cont_n[yy] + 5))))
+            ## ----------------------------------------------------------------
 
             ## 95% one-sided credible lower limit
             LCL <- diff - qnorm(input$alpha) * se_CrI

@@ -4,10 +4,4 @@
 \name{simutb-package}
 \alias{simutb-package}
 \alias{simutb}
-\alias{#}
-\alias{@useDynLib}
-\alias{simutb,}
-\alias{.registration}
-\alias{=}
-\alias{TRUE}
 \title{The 'simutb' package.}

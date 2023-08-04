@@ -27,6 +27,9 @@ setGeneric("stb_para<-",
 setGeneric("stb_set_default_para",
            function(x, ...) standardGeneric("stb_set_default_para"))
 
+setGeneric("stb_plot_design",
+           function(x, ...) standardGeneric("stb_plot_design"))
+
 setGeneric("stb_generate_data",
            function(x, ...) standardGeneric("stb_generate_data"))
 
@@ -355,8 +358,6 @@ setMethod("stb_trial_plot",
           function(x, ...) {
               stb_plot_data(x@design, x@data, ...)
           })
-
-
 
 
 ## -----------------------------------------------------------------------------

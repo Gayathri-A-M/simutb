@@ -3,7 +3,7 @@
 #' @docType package
 #' @name    simutb-package
 #' @aliases simutb
-#' # @useDynLib simutb, .registration = TRUE
+#' @useDynLib simutb, .registration = TRUE
 #'
 #' @import methods
 #' @import stats
