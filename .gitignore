@@ -6,4 +6,5 @@ inst/doc
 *.so
 *.o
 .DS_Store
+*.Rproj
 *undo-tree*
