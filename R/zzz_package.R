@@ -3,7 +3,7 @@
 #' @docType package
 #' @name    simutb-package
 #' @aliases simutb
-#' # @useDynLib simutb, .registration = TRUE
+#' @useDynLib simutb, .registration = TRUE
 #'
 #' @import methods
 #' @import stats
@@ -22,6 +22,8 @@
 #' @importFrom rpact getDesignGroupSequential
 #' @importFrom mvtnorm rmvnorm pmvnorm dmvnorm
 #' @importFrom survminer ggsurvplot ggsurvplot_facet
-#'
+#' @importFrom mmrm mmrm df_1d
+#' @importFrom brms brm as_draws_matrix
+#' @importFrom scales percent
 #'
 NULL
