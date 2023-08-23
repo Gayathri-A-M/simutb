@@ -4,7 +4,7 @@
 \alias{desfix_algorithm_1}
 \title{Dose escalation algorithm}
 \usage{
-desfix_algorithm_1(cur_data, lst_design, ...)
+desfix_algorithm_1(cur_data, lst_design, data_hist = NULL, ...)
 }
 \description{
 0:stay

@@ -5,8 +5,10 @@ library(tidyverse)
 library(dplyr)
 library(ggplot2)
 library(shiny)
+library(rstan)
+library(stringr)
+library(parallel)
 require(plotly)
-require(statidea)
 
 
 shinyServer(function(input, output, session) {
@@ -44,8 +46,16 @@ shinyServer(function(input, output, session) {
     output$pdf_p_prior = renderPlot({pdf_p_prior()})
     output$pdf_p_post = renderPlot({pdf_p_post()})
 
+    output$dose_action = renderTable({dose_action()})
+
     output$plot_scenario = renderPlot({plot_scenario()})
     output$table_results = renderTable({apply(table_results(),2,as.character)})
+
+    output$plot_scenario_sim = renderPlot({plot_scenario_sim()})
+    output$density_y_sim = renderPlot({density_y_sim()})
+    output$density_log_y_sim = renderPlot({density_log_y_sim()})
+    output$table_results_sim = renderTable({apply(table_results_sim(),2,as.character)})
+
 
     ##-----------------slider--------------
     output$slider_m = renderUI({

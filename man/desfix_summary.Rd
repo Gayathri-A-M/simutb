@@ -7,5 +7,18 @@
 desfix_summary(results, lst_design, ...)
 }
 \description{
-Summarize results
+0:stay
+}
+\details{
+-12:stop after 6 patients
+-13:stop before 6 patients
+-14:stop for both DLT and Over FIX
+-15:stop for Over FIX
+-16:stop for DLT
+
+11: escalate after the 1st patient
+12: escalate after 6 patients
+13: escalate before 6 patients
+
+2:selected
 }

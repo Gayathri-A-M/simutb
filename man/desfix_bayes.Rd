@@ -4,8 +4,20 @@
 \alias{desfix_bayes}
 \title{Bayesian log normal models}
 \usage{
-desfix_bayes(y, L_m, U_m, L_cv, U_cv, ...)
+desfix_bayes(
+  y,
+  L_m,
+  U_m,
+  L_cv,
+  U_cv,
+  L_m_inc = NA,
+  U_m_inc = NA,
+  data_hist = NULL,
+  n_min_borrow = 3,
+  bayes_model = c("independent", "same_cv", "monotone"),
+  ...
+)
 }
 \description{
-Bayesian log normal models
+For y, L_m and U_m, input *100; that is m %
 }

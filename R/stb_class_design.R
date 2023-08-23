@@ -658,5 +658,5 @@ setMethod("stb_simu_gen_summary",
           function(x, lst, ...) {
               rst <- desfix_summary(
                   lst$rst, x@design_para, ...)
-              rst
+              list(rst)
           })

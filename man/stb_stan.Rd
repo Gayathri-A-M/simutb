@@ -6,7 +6,7 @@
 \usage{
 stb_stan(
   lst_data,
-  stan_mdl = c("logn"),
+  stan_mdl = c("fix_ind", "fix_samecv", "fix_mono"),
   chains = 4,
   iter = 2000,
   warmup = 1000,

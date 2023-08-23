@@ -1,6 +1,6 @@
 Package: simutb
 Title: An R Package for Simulating Clinical Trials
-Version: 3.0
+Version: 3.1
 Authors@R:
     person(given = "Chenguang",
            family = "Wang",
@@ -31,7 +31,7 @@ LinkingTo:
     RcppParallel (>= 5.0.1),
     rstan (>= 2.18.1),
     StanHeaders (>= 2.18.0)
-RcppModules: stan_fit4logn_mod
+RcppModules: stan_fit4fix_ind_mod, stan_fit4fix_samecv_mod, stan_fit4fix_mono_mod
 Encoding: UTF-8
 LazyData: true
 NeedsCompilation: yes

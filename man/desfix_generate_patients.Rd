@@ -4,12 +4,7 @@
 \alias{desfix_generate_patients}
 \title{Simulate patients}
 \usage{
-desfix_generate_patients(
-  mean_log = c(2.88, 3.8, 4.27, 4.49),
-  sd_log = rep(0.47, 4),
-  dlt_rate = c(0.01, 0.01, 0.02, 0.02),
-  n_patients = 6
-)
+desfix_generate_patients(mean_log, sd_log, dlt_rate, n_patients)
 }
 \description{
 the lengths of dose_level, mean_log, sd_log and dlt_rate must be the same

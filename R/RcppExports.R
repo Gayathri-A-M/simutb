@@ -2,6 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 c_test <- function(test) {
-    .Call('_simutb_c_test', PACKAGE = 'simutb', test)
+    .Call(`_simutb_c_test`, test)
 }
 

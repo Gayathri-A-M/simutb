@@ -75,3 +75,21 @@ tl_xbeta <- function(data, fml, beta) {
 
     rst
 }
+
+#' Assign text to numeric vector
+#'
+#'
+#' @export
+#'
+tkt_assign <- function(txt, prefix = "c(", suffix = ")") {
+
+    rst <- NULL
+    txt <- paste("rst <-", prefix, txt, suffix)
+
+    tryCatch({
+        eval(parse(text = txt))
+    }, error = function(e) {
+    })
+
+    rst
+}

@@ -2,10 +2,10 @@
 % Please edit documentation in R/stb_dsgn_fix.R
 \name{desfix_kernel_density}
 \alias{desfix_kernel_density}
-\title{Plot binomial density}
+\title{Plot kernel density}
 \usage{
 desfix_kernel_density(x, cut, xlab_name, para_notation, percent, from, to)
 }
 \description{
-Plot binomial density
+Plot kernel density
 }

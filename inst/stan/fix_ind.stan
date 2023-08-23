@@ -8,8 +8,8 @@ data {
 }
 
 parameters {
-  real<lower=0> m;
-  real<lower=0> cv;
+  real<lower=L_m,  upper = U_m>  m;
+  real<lower=L_cv, upper = U_cv> cv;
 }
 
 transformed parameters {

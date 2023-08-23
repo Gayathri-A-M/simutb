@@ -23,11 +23,15 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP _rcpp_module_boot_stan_fit4logn_mod();
+RcppExport SEXP _rcpp_module_boot_stan_fit4fix_ind_mod();
+RcppExport SEXP _rcpp_module_boot_stan_fit4fix_mono_mod();
+RcppExport SEXP _rcpp_module_boot_stan_fit4fix_samecv_mod();
 
 static const R_CallMethodDef CallEntries[] = {
     {"_simutb_c_test", (DL_FUNC) &_simutb_c_test, 1},
-    {"_rcpp_module_boot_stan_fit4logn_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4logn_mod, 0},
+    {"_rcpp_module_boot_stan_fit4fix_ind_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4fix_ind_mod, 0},
+    {"_rcpp_module_boot_stan_fit4fix_mono_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4fix_mono_mod, 0},
+    {"_rcpp_module_boot_stan_fit4fix_samecv_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4fix_samecv_mod, 0},
     {NULL, NULL, 0}
 };
 
