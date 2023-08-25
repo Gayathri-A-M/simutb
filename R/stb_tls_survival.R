@@ -43,6 +43,13 @@ stb_tl_hazard <- function(median_surv = NULL, annual_drop = NULL) {
     rst
 }
 
+#' Convert cumulative incidence to median survival
+#'
+#' @export
+#'
+stb_tl_cumu_median <- function(cumu_inc, t = 6) {
+   t * log(0.5) / log(1 - cumu_inc)
+}
 
 #' Simulate time to events in days
 #'
@@ -179,20 +186,22 @@ stb_tl_surv_logrank <- function(data,
 
     surv_diff <- survdiff(fml, data = data)
     pval_lr   <- surv_diff$pvalue
+    zscore    <- sqrt(surv_diff$chisq)
 
     surv_diff <- coxph(fml, data = data)
     surv_sum  <- summary(surv_diff)
     pval_cox  <- unname(surv_sum$sctest[3])
     hr        <- surv_sum$coefficients[, 2]
-    zscore    <- surv_sum$coefficients[, 4]
 
-    pval_z    <- pnorm(zscore)
+    ## zscore    <- surv_sum$coefficients[, 4]
+    ## pval_z    <- pnorm(zscore)
 
     inx           <- seq_len(length(hr))
     inx[1]        <- ""
-    names(hr)     <- paste("hr",          inx, sep = "")
-    names(zscore) <- paste("zscore",      inx, sep = "")
-    names(pval_z) <- paste("pval_z_ones", inx, sep = "")
+    names(hr)     <- paste("hr", inx, sep = "")
+
+    ##names(zscore) <- paste("zscore",      inx, sep = "")
+    ##names(pval_z) <- paste("pval_z_ones", inx, sep = "")
 
     ## one-sided pvalue
     pvalue <- switch(method,
@@ -203,13 +212,13 @@ stb_tl_surv_logrank <- function(data,
         pvalue <- pvalue / 2
     } else {
         pvalue <- 1 - pvalue / 2
+        zscore <- -zscore
     }
 
     ## return
     c(hr,
-      zscore,
-      pval_z,
-      pvalue_oneside = pvalue,
+      zscore         = zscore,
+      pval_oneside   = pvalue,
       nevent         = surv_diff$nevent,
       pval_lr        = pval_lr,
       pval_cox       = pval_cox)
@@ -268,6 +277,7 @@ stb_tl_interim_data_2arm <- function(data,
 #' This is an improved version of stb_tl_interim_data that allows to create an
 #' interim snapshot based on number of events or samples from any specific arms
 #'
+#' @param event obs: ignore pfs/os, just an event
 #' @param info_frac information fraction
 #' @param total total number of events or samples
 #' @param offset_days offset days after the target event for creating the
@@ -277,12 +287,12 @@ stb_tl_interim_data_2arm <- function(data,
 #'
 stb_tl_interim_data <- function(data, info_frac,
                                 total       = NULL,
-                                event       = c("os", "pfs", "enroll"),
+                                event       = c("os", "pfs", "obs", "enroll"),
                                 arms        = NULL,
                                 offset_days = 0) {
 
     event  <- match.arg(event)
-    v_date <- paste("date_",   event, sep = "")
+    v_date <- paste("date_", event, sep = "")
 
     ## default total is the total sample size
     if (is.null(total))
@@ -293,7 +303,7 @@ stb_tl_interim_data <- function(data, info_frac,
 
     ## all events
     dta_events <- data
-    if (event %in% c("os", "pfs")) {
+    if (event %in% c("os", "pfs", "obs")) {
         v_status   <- paste("status_", event, sep = "")
         dta_events <- dta_events %>%
             dplyr::filter((!!sym(v_status)) == 1)
@@ -310,27 +320,50 @@ stb_tl_interim_data <- function(data, info_frac,
     stopifnot(nrow(dta_events) >= target)
 
     ## censor at interim
+    date_interim <- data.frame(dta_events)[target, v_date] + offset_days
     rst <- data %>%
-        mutate(date_interim =
-                   dta_events[target, v_date] +
-                   offset_days) %>%
-        filter(date_enroll <= date_interim) %>%
-        mutate(status_os = if_else(date_os <= date_interim,
-                                   status_os,
-                                   0),
-               status_pfs = if_else(date_pfs <= date_interim,
-                                    status_pfs,
-                                    0),
-               date_os = if_else(date_os <= date_interim,
-                                 date_os,
-                                 date_interim),
-               date_pfs = if_else(date_pfs <= date_interim,
-                                  date_pfs,
-                                  date_interim),
-               day_pfs = date_pfs - date_enroll,
-               day_os  = date_os  - date_enroll
-               ) %>%
-        arrange(date_enroll)
+        mutate(date_interim = date_interim) %>%
+        dplyr::filter(date_enroll <= date_interim)
+
+    if ("date_os" %in% names(rst)) {
+        rst <- rst %>%
+            mutate(status_os = if_else(date_os <= date_interim,
+                                       status_os,
+                                       0),
+                   date_os = if_else(date_os <= date_interim,
+                                     date_os,
+                                     date_interim),
+                   day_os  = date_os  - date_enroll
+                   )
+    }
+
+    if ("date_pfs" %in% names(rst)) {
+        rst <- rst %>%
+            mutate(status_pfs = if_else(date_pfs <= date_interim,
+                                        status_pfs,
+                                        0),
+                   date_pfs = if_else(date_pfs <= date_interim,
+                                      date_pfs,
+                                      date_interim),
+                   day_pfs = date_pfs - date_enroll
+                   )
+    }
+
+    if ("date_obs" %in% names(rst)) {
+        rst <- rst %>%
+            mutate(status_obs = if_else(date_obs <= date_interim,
+                                        status_obs,
+                                        0),
+                   date_obs = if_else(date_obs <= date_interim,
+                                      date_obs,
+                                      date_interim),
+                   day_obs = date_obs - date_enroll
+                   )
+    }
+
+    rst <- rst %>% arrange(date_enroll)
+
+    ## return
     rst
 }
 

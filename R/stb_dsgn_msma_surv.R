@@ -38,7 +38,7 @@ msma_surv_describe <- function(x, ...) {
 #'
 internal_msma_surv_dpara <- function() {
     list(sample_size        = 4800,
-         ratio_by_arm       = c(1, 1, 1)/3,
+         ratio_by_arm       = c(1, 1, 1) / 3,
          median_mth         = c(10, 10, 10),
          annual_drop        = 0.03,
          par_enroll         = list(type       = "by_duration",
@@ -55,7 +55,10 @@ internal_msma_surv_dpara <- function() {
 #'
 #'
 #'
-msma_surv_gen_data <- function(lst_design, seed = NULL, ...) {
+msma_surv_gen_data <- function(lst_design,
+                               seed = NULL,
+                               set_target = FALSE,
+                               ...) {
 
     if (!is.null(seed))
         old_seed <- set.seed(seed)
@@ -70,11 +73,13 @@ msma_surv_gen_data <- function(lst_design, seed = NULL, ...) {
                                mth_fix_fu = lst_design$mth_fix_fu,
                                par_enroll = lst_design$par_enroll))
 
+    ## convert to median survival
+    if (is.null(lst_design$median_mth) &
+        !is.null(lst_design$six_mth_cumu))
+        lst_design$median_mth <- stb_tl_cumu_median(lst_design$six_mth_cumu)
+
     ## outcome
-    ## annual to day hr
-    median_by_arm <- lst_design$medain_by_arm
-    annual_drop   <- lst_design$annual_drop
-    rst           <- NULL
+    rst <- NULL
     for (i in seq_len(length(n_by_arm))) {
         cur_censor <- stb_tl_rexp(n_by_arm[i],
                                   median_mth  = NULL,
@@ -107,24 +112,25 @@ msma_surv_gen_data <- function(lst_design, seed = NULL, ...) {
 
 
     ## make target events
-    dat_target <- rst %>%
-        filter(1 == status_obs) %>%
-        arrange(date_obs)
+    if (!is.null(lst_design$target_primary)) {
+        dat_target <- rst %>%
+            filter(1 == status_obs) %>%
+            arrange(date_obs)
 
-    if (nrow(dat_target) > lst_design$target_primary) {
-        date_target <- dat_target$date_obs[lst_design$target_primary]
-        rst <- rst %>%
-            mutate(date_target = date_target) %>%
-            mutate(date_obs_old = date_obs,
-                   status_obs   = if_else(date_obs_old <= date_target,
-                                          status_obs,
-                                          0),
-                   date_obs = if_else(date_obs_old <= date_target,
-                                      date_obs_old,
-                                      date_target),
-                   day_obs  = date_obs - date_enroll)
+        if (nrow(dat_target) > lst_design$target_primary) {
+            date_target <- dat_target$date_obs[lst_design$target_primary]
+            rst <- rst %>%
+                mutate(date_target = date_target) %>%
+                mutate(date_obs_old = date_obs,
+                       status_obs   = if_else(date_obs_old <= date_target,
+                                              status_obs,
+                                              0),
+                       date_obs = if_else(date_obs_old <= date_target,
+                                          date_obs_old,
+                                          date_target),
+                       day_obs  = date_obs - date_enroll)
+        }
     }
-
 
     ## reset
     if (!is.null(seed))
@@ -139,7 +145,9 @@ msma_surv_gen_data <- function(lst_design, seed = NULL, ...) {
 #'
 #' Generate analysis dataset for minimum fu days
 #'
-msma_surv_ana_logrank <- function(data_ana) {
+msma_surv_ana_logrank <- function(data_ana,
+                                  fml = "Surv(day_obs, status_obs) ~ arm",
+                                  mth_fix_fu = NULL) {
 
     n_arm <- max(data_ana$arm)
     rst   <- NULL
@@ -149,24 +157,48 @@ msma_surv_ana_logrank <- function(data_ana) {
             filter(arm %in% c(0, i)) %>%
             mutate(arm = if_else(arm > 0, 1, 0))
 
-        cur_rst <- coxph(as.formula("Surv(day_obs, status_obs) ~ arm"),
-                         data = cur_data)
-        surv_sum  <- summary(cur_rst)
-        pval_cox  <- unname(surv_sum$sctest[3])
-        hr        <- surv_sum$coefficients[, 2]
+        cur_rst   <- stb_tl_surv_logrank(cur_data,
+                                         fml_survdiff = fml)
+        n_enroll  <- cur_data %>%
+            group_by(arm) %>%
+            summarize(n = n())
 
         n_event   <- cur_data %>%
             filter(1 == status_obs) %>%
             group_by(arm) %>%
             summarize(n = n())
 
+        n_fu <- c(NA, NA)
+        if (!is.null(mth_fix_fu)) {
+            n_fu <- cur_data %>%
+                mutate(day_on_study = date_interim - date_enroll) %>%
+                filter(day_on_study >= mth_fix_fu * 30.5)
+
+            if (0 == nrow(n_fu)) {
+                n_fu <- c(0, 0)
+            } else {
+                n_fu <- n_fu %>%
+                    group_by(arm) %>%
+                    summarize(n = n())
+
+                n_fu <- n_fu$n
+            }
+        }
+
         rst <- rbind(rst,
                      c(arm = i,
-                       n_event_ctl = n_event$n[1],
-                       n_event_trt = n_event$n[2],
-                       n_event     = cur_rst$nevent,
-                       pval        = pval_cox,
-                       hr          = hr))
+                       n_event_ctl  = n_event$n[1],
+                       n_event_trt  = n_event$n[2],
+                       n_event      = sum(n_event$n),
+                       n_min_fu_ctl = n_fu[1],
+                       n_min_fu_trt = n_fu[2],
+                       n_min_fu     = sum(n_fu),
+                       n_enroll_ctl = n_enroll$n[1],
+                       n_enroll_trt = n_enroll$n[2],
+                       n_enroll     = sum(n_enroll$n),
+                       cur_rst["pval_oneside"],
+                       cur_rst["hr"],
+                       cur_rst["zscore"]))
     }
 
     data.frame(rst)

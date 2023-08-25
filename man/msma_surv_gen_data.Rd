@@ -4,7 +4,7 @@
 \alias{msma_surv_gen_data}
 \title{Generate data}
 \usage{
-msma_surv_gen_data(lst_design, seed = NULL, ...)
+msma_surv_gen_data(lst_design, seed = NULL, set_target = FALSE, ...)
 }
 \description{
 Generate data

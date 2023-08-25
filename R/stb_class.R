@@ -343,7 +343,6 @@ setMethod("stb_get_trial_design", "STB_TRIAL", function(x) x@design)
 #'
 setMethod("stb_get_trial_seed",   "STB_TRIAL", function(x) x@seed)
 
-
 #'
 ## setMethod("stb_create_analysis_set", "STB_TRIAL", function(x, ...) {
 ##     stb_create_analysis_set(x@design, x@data, ...)

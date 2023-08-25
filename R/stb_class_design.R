@@ -17,6 +17,7 @@
 ##      8. STB_DESIGN_RMEASURE
 ##      9. STB_DESIGN_MSMA_SURV
 ##     10: STB_DESIGN_DOSE_FIX
+##     11: STB_DESIGN_COVID
 ##
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
@@ -42,7 +43,8 @@ stb_create_design <- function(type = c("surv_strat",
                                        "rcurrent",
                                        "rmeasure",
                                        "msma_surv",
-                                       "dose_fix")) {
+                                       "dose_fix",
+                                       "covid")) {
 
     type <- match.arg(type)
     rst  <- switch(type,
@@ -56,6 +58,7 @@ stb_create_design <- function(type = c("surv_strat",
                    rmeasure   = new("STB_DESIGN_RMEASURE"),
                    msma_surv  = new("STB_DESIGN_MSMA_SURV"),
                    dose_fix   = new("STB_DESIGN_DOSE_FIX"),
+                   covid      = new("STB_DESIGN_COVID"),
                    new("STB_DESIGN"))
 
     rst
@@ -658,5 +661,99 @@ setMethod("stb_simu_gen_summary",
           function(x, lst, ...) {
               rst <- desfix_summary(
                   lst$rst, x@design_para, ...)
+              list(rst)
+          })
+
+
+## -----------------------------------------------------------------------------
+##                        COVID STUDIES
+## -----------------------------------------------------------------------------
+
+#'
+#' @export
+#'
+setClass("STB_DESIGN_COVID",
+         contains = "STB_DESIGN_MSMA_SURV")
+
+setMethod("stb_describe",
+          "STB_DESIGN_COVID",
+          function(x, ...) {
+              covid_describe()
+          })
+
+setMethod("stb_set_default_para",
+          "STB_DESIGN_COVID",
+          function(x) {
+              lst <- callNextMethod()
+              lst$median_mth     <- NULL
+              lst$target_primary <- NULL
+              lst$six_mth_cumu   <- c(0.021, 0.005, 0.005)
+              lst$par_interim    <- list(target_primary = 54,
+                                         ana_fraction   = c(0.5, 1),
+                                         target_arms    = NULL)
+              lst$power          <- 0.9
+              lst
+          })
+
+setMethod("stb_create_analysis_set",
+          "STB_DESIGN_COVID",
+          function(x, data, par_interim = NULL, ...) {
+
+              if (is.null(data))
+                  return(NULL)
+
+              if (is.null(par_interim))
+                  par_interim <- x@design_para$par_interim
+
+              rst <- list()
+              for (i in seq_len(length(par_interim$ana_fraction))) {
+                  rst[[i]] <- stb_tl_interim_data(
+                      data,
+                      total     = par_interim$target_primary,
+                      info_frac = par_interim$ana_fraction[i],
+                      event     = "obs",
+                      arms      = par_interim$target_arms)
+              }
+
+              names(rst) <- par_interim$ana_fraction
+
+              rst
+          })
+
+setMethod("stb_analyze_data",
+          "STB_DESIGN_COVID",
+          function(x, data_ana, par_analysis = NULL, ...) {
+
+              if (is.null(par_analysis))
+                  par_analysis <- x@design_para$par_analysis
+
+              rst <- NULL
+              for (i in seq_len(length(data_ana))) {
+                  cur_rst <- msma_surv_ana_logrank(
+                      data_ana[[i]],
+                      mth_fix_fu = x@design_para$mth_fix_fu)
+
+                  info_frac       <- names(data_ana)[i]
+                  cur_rst         <- data.frame(cur_rst)
+                  cur_rst$interim <- info_frac
+
+                  ## conditional power
+                  cur_rst$cond_pow <- stb_tl_gsd_condpower(
+                      cur_rst$zscore,
+                      info_frac    = as.numeric(info_frac),
+                      alpha        = x@design_para$alpha,
+                      power        = x@design_para$power,
+                      use_observed = FALSE)
+
+                  cur_rst$cond_pow_hat <- stb_tl_gsd_condpower(
+                      cur_rst$zscore,
+                      info_frac    = as.numeric(info_frac),
+                      alpha        = x@design_para$alpha,
+                      power        = x@design_para$power,
+                      use_observed = TRUE)
+
+                  rst <- rbind(rst, cur_rst)
+              }
+
               list(rst)
           })

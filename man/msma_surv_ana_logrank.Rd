@@ -4,7 +4,11 @@
 \alias{msma_surv_ana_logrank}
 \title{Generate analysis data set}
 \usage{
-msma_surv_ana_logrank(data_ana)
+msma_surv_ana_logrank(
+  data_ana,
+  fml = "Surv(day_obs, status_obs) ~ arm",
+  mth_fix_fu = NULL
+)
 }
 \description{
 Generate analysis dataset for minimum fu days

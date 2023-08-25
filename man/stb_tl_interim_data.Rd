@@ -8,7 +8,7 @@ stb_tl_interim_data(
   data,
   info_frac,
   total = NULL,
-  event = c("os", "pfs", "enroll"),
+  event = c("os", "pfs", "obs", "enroll"),
   arms = NULL,
   offset_days = 0
 )
@@ -17,6 +17,8 @@ stb_tl_interim_data(
 \item{info_frac}{information fraction}
 
 \item{total}{total number of events or samples}
+
+\item{event}{obs: ignore pfs/os, just an event}
 
 \item{offset_days}{offset days after the target event for creating the
 interim data}
