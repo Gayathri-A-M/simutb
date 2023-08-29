@@ -317,7 +317,11 @@ stb_tl_interim_data <- function(data, info_frac,
     dta_events  <- dta_events %>%
         arrange(!!sym(v_date))
 
-    stopifnot(nrow(dta_events) >= target)
+    ## not enough events
+    if (nrow(dta_events) < target) {
+        warning("The total number of events is less than the target number.")
+        return(NA)
+    }
 
     ## censor at interim
     date_interim <- data.frame(dta_events)[target, v_date] + offset_days

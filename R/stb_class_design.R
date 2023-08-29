@@ -729,6 +729,10 @@ setMethod("stb_analyze_data",
 
               rst <- NULL
               for (i in seq_len(length(data_ana))) {
+
+                  if (!is.data.frame(data_ana[[i]]))
+                      next
+
                   cur_rst <- msma_surv_ana_logrank(
                       data_ana[[i]],
                       mth_fix_fu = x@design_para$mth_fix_fu)
