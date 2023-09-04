@@ -4,7 +4,7 @@
 \alias{stb_tl_simu_enroll_by_dur}
 \title{Simulate Enrollment Time}
 \usage{
-stb_tl_simu_enroll_by_dur(n_pt, pt_dur_mth)
+stb_tl_simu_enroll_by_dur(n_pt, n_pt_tot, pt_dur_mth)
 }
 \description{
 Simulate enrollment time by total time

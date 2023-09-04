@@ -53,8 +53,10 @@ stb_tl_simu_enroll_arc <- function(ntot,
 #'
 #' @export
 #'
-stb_tl_simu_enroll_by_dur <- function(n_pt, pt_dur_mth) {
-    data.frame(mth_enroll = runif(n_pt, 0, pt_dur_mth))
+stb_tl_simu_enroll_by_dur <- function(n_pt, n_pt_tot, pt_dur_mth) {
+    data.frame(mth_enroll = runif(n_pt,
+                                  0,
+                                  pt_dur_mth))
 }
 
 #' Simulate Enrollment Time
@@ -63,9 +65,11 @@ stb_tl_simu_enroll_by_dur <- function(n_pt, pt_dur_mth) {
 #'
 #' @export
 #'
-stb_tl_simu_enroll_by_rate <- function(n_pt, pt_per_mth) {
-    pt_dur_mth <- ntot / pt_per_mth
-    data.frame(mth_enroll = runif(n_pt, 0, pt_dur_mth))
+stb_tl_simu_enroll_by_rate <- function(n_pt, n_pt_tot, pt_per_mth) {
+    pt_dur_mth <- n_pt_tot / pt_per_mth
+    data.frame(mth_enroll = runif(n_pt,
+                                  0,
+                                  pt_dur_mth))
 }
 
 #' Simulate Enrollment Time
@@ -75,11 +79,14 @@ stb_tl_simu_enroll_by_rate <- function(n_pt, pt_per_mth) {
 #' @export
 #'
 stb_tl_simu_enroll_by_center <- function(n_pt,
+                                         n_pt_tot,
                                          n_center,
                                          pt_per_center_per_mth,
                                          center_per_mth) {
+
     center_dur_mth <- n_center / center_per_mth
-    pt_dur_mth     <- n_pt / pt_per_center_per_mth
+    pt_dur_mth     <- n_pt_tot / pt_per_center_per_mth
+
     en_center      <- runif(n_center, 0, center_dur_mth)
     en_center      <- sort(en_center)
 
@@ -104,7 +111,8 @@ stb_tl_simu_enroll_by_center <- function(n_pt,
 #'
 #' @export
 #'
-stb_tl_simu_enroll <- function(n_pt        = 100,
+stb_tl_simu_enroll <- function(n_pt_arm    = 100,
+                               n_pt_tot    = n_pt_arm * 2,
                                par_enroll  = list(type       = "by_duration",
                                                   pt_dur_mth = 24),
                                mth_min_fu  = NULL,
@@ -113,13 +121,14 @@ stb_tl_simu_enroll <- function(n_pt        = 100,
                                mth_to_days = 30.4,
                                ...) {
 
-    type            <- par_enroll$type
-    par_enroll$type <- NULL
-    par_enroll$n_pt <- n_pt
-    f_enroll        <- switch(type,
-                              by_duration = stb_tl_simu_enroll_by_dur,
-                              by_rate     = stb_tl_simu_enroll_by_rate,
-                              by_center   = stb_tl_simu_enroll_by_center)
+    type                <- par_enroll$type
+    par_enroll$type     <- NULL
+    par_enroll$n_pt     <- n_pt_arm
+    par_enroll$n_pt_tot <- n_pt_tot
+    f_enroll            <- switch(type,
+                                  by_duration = stb_tl_simu_enroll_by_dur,
+                                  by_rate     = stb_tl_simu_enroll_by_rate,
+                                  by_center   = stb_tl_simu_enroll_by_center)
 
     rst <- do.call(f_enroll, par_enroll) %>%
         mutate(day_enroll = mth_to_days * mth_enroll) %>%
@@ -167,7 +176,9 @@ stb_tl_simu_enroll_arms <- function(n_by_arm, ..., seed = NULL) {
     n_arm <- length(n_by_arm)
     rst   <- NULL
     for (i in seq_len(n_arm)) {
-        cur_arm     <- stb_tl_simu_enroll(n_by_arm[i], ...)
+        cur_arm     <- stb_tl_simu_enroll(n_by_arm[i],
+                                          n_pt_tot = sum(n_by_arm),
+                                          ...)
         cur_arm$arm <- i - 1
         rst         <- rbind(rst, cur_arm)
     }

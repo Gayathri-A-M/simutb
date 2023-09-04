@@ -5,7 +5,8 @@
 \title{Simulate Enrollment Time}
 \usage{
 stb_tl_simu_enroll(
-  n_pt = 100,
+  n_pt_arm = 100,
+  n_pt_tot = n_pt_arm * 2,
   par_enroll = list(type = "by_duration", pt_dur_mth = 24),
   mth_min_fu = NULL,
   mth_fix_fu = NULL,

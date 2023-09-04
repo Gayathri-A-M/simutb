@@ -6,6 +6,7 @@
 \usage{
 stb_tl_simu_enroll_by_center(
   n_pt,
+  n_pt_tot,
   n_center,
   pt_per_center_per_mth,
   center_per_mth

@@ -685,13 +685,7 @@ setMethod("stb_set_default_para",
           "STB_DESIGN_COVID",
           function(x) {
               lst <- callNextMethod()
-              lst$median_mth     <- NULL
-              lst$target_primary <- NULL
-              lst$six_mth_cumu   <- c(0.021, 0.005, 0.005)
-              lst$par_interim    <- list(target_primary = 54,
-                                         ana_fraction   = c(0.5, 1),
-                                         target_arms    = NULL)
-              lst$power          <- 0.9
+              lst <- internal_covid_dpara(lst)
               lst
           })
 
@@ -733,31 +727,20 @@ setMethod("stb_analyze_data",
                   if (!is.data.frame(data_ana[[i]]))
                       next
 
-                  cur_rst <- msma_surv_ana_logrank(
-                      data_ana[[i]],
-                      mth_fix_fu = x@design_para$mth_fix_fu)
-
-                  info_frac       <- names(data_ana)[i]
-                  cur_rst         <- data.frame(cur_rst)
-                  cur_rst$interim <- info_frac
-
-                  ## conditional power
-                  cur_rst$cond_pow <- stb_tl_gsd_condpower(
-                      cur_rst$zscore,
-                      info_frac    = as.numeric(info_frac),
-                      alpha        = x@design_para$alpha,
-                      power        = x@design_para$power,
-                      use_observed = FALSE)
-
-                  cur_rst$cond_pow_hat <- stb_tl_gsd_condpower(
-                      cur_rst$zscore,
-                      info_frac    = as.numeric(info_frac),
-                      alpha        = x@design_para$alpha,
-                      power        = x@design_para$power,
-                      use_observed = TRUE)
-
+                  info_frac <- names(data_ana)[i]
+                  cur_rst   <- covid_analysis(data_ana[[i]],
+                                              info_frac,
+                                              x@design_para)
                   rst <- rbind(rst, cur_rst)
               }
 
               list(rst)
+          })
+
+
+setMethod("stb_simu_gen_summary",
+          "STB_DESIGN_COVID",
+          function(x, lst, ...) {
+              rst <- covid_simu_summary(lst, x@design_para$par_analysis, ...)
+              rst
           })

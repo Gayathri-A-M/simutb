@@ -4,7 +4,7 @@
 \alias{stb_tl_simu_enroll_by_rate}
 \title{Simulate Enrollment Time}
 \usage{
-stb_tl_simu_enroll_by_rate(n_pt, pt_per_mth)
+stb_tl_simu_enroll_by_rate(n_pt, n_pt_tot, pt_per_mth)
 }
 \description{
 Simulate enrollment time by rate

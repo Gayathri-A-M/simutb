@@ -159,43 +159,9 @@ msma_surv_ana_logrank <- function(data_ana,
 
         cur_rst   <- stb_tl_surv_logrank(cur_data,
                                          fml_survdiff = fml)
-        n_enroll  <- cur_data %>%
-            group_by(arm) %>%
-            summarize(n = n())
-
-        n_event   <- cur_data %>%
-            filter(1 == status_obs) %>%
-            group_by(arm) %>%
-            summarize(n = n())
-
-        n_fu <- c(NA, NA)
-        if (!is.null(mth_fix_fu)) {
-            n_fu <- cur_data %>%
-                mutate(day_on_study = date_interim - date_enroll) %>%
-                filter(day_on_study >= mth_fix_fu * 30.5)
-
-            if (0 == nrow(n_fu)) {
-                n_fu <- c(0, 0)
-            } else {
-                n_fu <- n_fu %>%
-                    group_by(arm) %>%
-                    summarize(n = n())
-
-                n_fu <- n_fu$n
-            }
-        }
 
         rst <- rbind(rst,
                      c(arm = i,
-                       n_event_ctl  = n_event$n[1],
-                       n_event_trt  = n_event$n[2],
-                       n_event      = sum(n_event$n),
-                       n_min_fu_ctl = n_fu[1],
-                       n_min_fu_trt = n_fu[2],
-                       n_min_fu     = sum(n_fu),
-                       n_enroll_ctl = n_enroll$n[1],
-                       n_enroll_trt = n_enroll$n[2],
-                       n_enroll     = sum(n_enroll$n),
                        cur_rst["pval_oneside"],
                        cur_rst["hr"],
                        cur_rst["zscore"]))
