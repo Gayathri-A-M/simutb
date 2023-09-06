@@ -192,6 +192,7 @@ stb_tl_surv_logrank <- function(data,
     surv_sum  <- summary(surv_diff)
     pval_cox  <- unname(surv_sum$sctest[3])
     hr        <- surv_sum$coefficients[, 2]
+    se_log_hr <- unname(surv_sum$coefficients[, 3])
 
     ## zscore    <- surv_sum$coefficients[, 4]
     ## pval_z    <- pnorm(zscore)
@@ -217,6 +218,7 @@ stb_tl_surv_logrank <- function(data,
 
     ## return
     c(hr,
+      se_log_hr      = se_log_hr,
       zscore         = zscore,
       pval_oneside   = pvalue,
       nevent         = surv_diff$nevent,

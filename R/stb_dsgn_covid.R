@@ -68,6 +68,11 @@ covid_surv_ana_logrank <- function(data_ana,
                                    fml = "Surv(day_obs, status_obs) ~ arm",
                                    mth_fix_fu = NULL) {
 
+    day_analysis <- data_ana %>%
+        mutate(day = date_interim - date_bos) %>%
+        select(day)
+
+
     n_arm <- max(data_ana$arm)
     rst   <- NULL
     for (i in 1:n_arm) {
@@ -119,8 +124,10 @@ covid_surv_ana_logrank <- function(data_ana,
                        n_min_fu_trt = n_fu[2],
                        n_min_fu     = sum(n_fu),
                        n_enroll     = sum(n_enroll$n),
+                       day_analysis = day_analysis$day[1],
                        cur_rst["pval_oneside"],
                        cur_rst["hr"],
+                       cur_rst["se_log_hr"],
                        cur_rst["zscore"]))
     }
 
@@ -210,6 +217,7 @@ covid_simu_summary_ind <- function(dat_rst, par_analysis, nsmps = 3000) {
                                     interim         = cinfo,
                                     info_frac       = info_fracs[cinfo],
                                     hr              = cur_rst$hr[1],
+                                    day_analysis    = cur_rst$day_analysis[1],
                                     post_ctl_rate   = post_ctl_rate,
                                     prob_ctl_rate   = prob_ctl_rate,
                                     futile_cond     = futile_cond,
