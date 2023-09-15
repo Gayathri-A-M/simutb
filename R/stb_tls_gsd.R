@@ -302,3 +302,44 @@ stb_tl_gsd_solve <- function(info_fracs = c(0.2, 1),
     ## return
     rst
 }
+
+#' GSD Enrollment
+#'
+#'
+#' @export
+#'
+stb_tl_gsd_enroll <- function(info_frac,
+                              n = 500, enroll_rate = 20, min_fu = 6) {
+    n_ia       <- n * info_frac
+    dur_enroll <- n_ia / enroll_rate
+    dur_ia     <- dur_enroll + min_fu
+    enroll_ia  <- min(dur_ia * enroll_rate, n)
+
+    c(dur_ia, enroll_ia)
+}
+
+#' GSD Expected sample size
+#'
+#'
+#' @export
+#'
+stb_tl_gsd_outcome <- function(info_fracs, ia_power, ...) {
+
+
+    stopifnot(length(info_fracs) == length(info_fracs))
+
+    rst <- c(0, 0)
+    for (i in seq_len(length(info_fracs))) {
+        cur_rst <- stb_tl_gsd_enroll(info_fracs[i], ...)
+
+        if (info_fracs[i] < 1) {
+            cur_w <- ia_power[i]
+        } else {
+            cur_w <- 1 - sum(ia_power[-i])
+        }
+
+        rst <- rst + cur_rst * cur_w
+    }
+
+    rst
+}
