@@ -1,6 +1,6 @@
 Package: simutb
 Title: An R Package for Simulating Clinical Trials
-Version: 3.1
+Version: 3.2
 Authors@R:
     person(given = "Chenguang",
            family = "Wang",
