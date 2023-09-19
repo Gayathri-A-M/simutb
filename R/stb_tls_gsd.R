@@ -67,12 +67,13 @@ stb_tl_gsd_predpower <- function(zscore, info_frac,
 #'
 #' @export
 #'
-stb_tl_gsd_boundary <- function(...,
+stb_tl_gsd_boundary <- function(typeOfDesign,
                                 info_fracs     = c(0.5),
                                 alpha_spending = c(0.001),
                                 sided          = 1,
                                 alpha          = 0.025,
-                                power          = 0.9) {
+                                power          = 0.9,
+                                ...) {
 
     info_fracs <- sort(info_fracs)
     if (max(info_fracs) < 1) {
@@ -80,14 +81,18 @@ stb_tl_gsd_boundary <- function(...,
         alpha_spending <- c(alpha_spending, alpha)
     }
 
-    stopifnot(length(info_fracs) == length(alpha_spending))
+    if ("asUser" == typeOfDesign) {
+        stopifnot(length(info_fracs) == length(alpha_spending))
+    }
 
-    rst <- getDesignGroupSequential(...,
+    rst <- getDesignGroupSequential(typeOfDesign      = typeOfDesign,
                                     sided             = sided,
                                     alpha             = alpha,
                                     informationRates  = info_fracs,
-                                    userAlphaSpending = alpha_spending)
+                                    userAlphaSpending = alpha_spending,
+                                    ...)
 
+    ## power
     rst_rej <- stb_tl_gsd_prob(rst$informationRates,
                                boundary = rst$criticalValues,
                                boundary_type = "zscore",
@@ -98,9 +103,10 @@ stb_tl_gsd_boundary <- function(...,
                info_frac           = rst$informationRates,
                boundary_zscore     = rst$criticalValues,
                nominal_alpha       = rst$stageLevels,
-               nominal_alpha_spent = alpha - rst$stageLevels,
+               nominal_alpha_left  = alpha - rst$stageLevels,
                ia_alpha_spent      = diff(c(0, rst$alphaSpent)),
                cumu_alpha_spent    = rst$alphaSpent,
+               mdd_percent         = rst_rej$mdd_percent,
                ia_power            = rst_rej$ia_power,
                cumu_power          = rst_rej$cumu_power,
                study_alpha         = alpha,
@@ -172,14 +178,14 @@ stb_tl_gsd_prob <- function(info_fracs    = c(0.5, 1),
     if ("zscore" == boundary_type) {
         boundary_zscore     <- boundary
         nominal_alpha       <- 1 - pnorm(boundary_zscore)
-        nominal_alpha_spent <- alpha - nominal_alpha
+        nominal_alpha_left <- alpha - nominal_alpha
     } else if ("alpha" == boundary_type) {
         nominal_alpha       <- boundary
         boundary_zscore     <- qnorm(1 - nominal_alpha)
-        nominal_alpha_spent <- alpha - nominal_alpha
+        nominal_alpha_left <- alpha - nominal_alpha
     } else {
-        nominal_alpha_spent <- boundary
-        nominal_alpha       <- alpha - nominal_alpha_spent
+        nominal_alpha_left <- boundary
+        nominal_alpha       <- alpha - nominal_alpha_left
         boundary_zscore     <- qnorm(1 - nominal_alpha)
     }
 
@@ -212,13 +218,17 @@ stb_tl_gsd_prob <- function(info_fracs    = c(0.5, 1),
                                    upper = ub,
                                    mean  = cur_mean,
                                    sigma = cur_sig)
-}
+        }
 
         rst <- rbind(rst,
                      c(cur_rej_alpha,
                        cur_rej_pow))
     }
 
+    ## MDD
+    z_alpha     <- qnorm(1 - alpha)
+    theta       <- z_alpha + qnorm(power)
+    mdd_percent <- qnorm(1 - nominal_alpha) / theta
 
     ## return
     data.frame(
@@ -226,9 +236,10 @@ stb_tl_gsd_prob <- function(info_fracs    = c(0.5, 1),
         info_frac           = info_fracs,
         boundary_zscore     = boundary_zscore,
         nominal_alpha       = nominal_alpha,
-        nominal_alpha_spent = nominal_alpha_spent,
+        nominal_alpha_left  = nominal_alpha_left,
         ia_alpha_spent      = rst[, 1],
         cumu_alpha_spent    = cumsum(rst[, 1]),
+        mdd_percent         = mdd_percent,
         ia_power            = rst[, 2],
         cumu_power          = cumsum(rst[, 2]),
         study_alpha         = alpha,
@@ -241,7 +252,7 @@ stb_tl_gsd_prob <- function(info_fracs    = c(0.5, 1),
 #'
 #' @export
 #'
-stb_tl_gsd_solve <- function(info_fracs = c(0.2, 1),
+stb_tl_gsd_solve_grid <- function(info_fracs = c(0.2, 1),
                              boundary   = c(0.001, NA),
                              boundary_type = c("alpha",
                                                "alpha_spent",
@@ -255,8 +266,6 @@ stb_tl_gsd_solve <- function(info_fracs = c(0.2, 1),
     stopifnot(max(info_fracs) == 1)
     stopifnot(length(info_fracs) == length(boundary))
     boundary_type <- match.arg(boundary_type)
-
-
     inx_na <- which(is.na(boundary))
     stopifnot(1 == length(inx_na))
 
@@ -302,6 +311,66 @@ stb_tl_gsd_solve <- function(info_fracs = c(0.2, 1),
     ## return
     rst
 }
+
+#' GSD for one interim analysis
+#'
+#'
+#' @export
+#'
+stb_tl_gsd_solve <- function(info_fracs = c(0.2, 1),
+                             boundary   = c(0.001, NA),
+                             boundary_type = c("alpha",
+                                               "alpha_spent",
+                                               "zscore"),
+                             alpha  = 0.025,
+                             power  = 0.9, ...) {
+
+
+    fx <- function(x) {
+        bd         <- boundary
+        bd[inx_na] <- x
+        cur_rst    <- stb_tl_gsd_prob(info_fracs    = info_fracs,
+                                      boundary      = bd,
+                                      boundary_type = boundary_type,
+                                      alpha         = alpha,
+                                      power         = 0)
+
+        abs(alpha - max(cur_rst$cumu_alpha_spent))
+    }
+
+    stopifnot(max(info_fracs) == 1)
+    stopifnot(length(info_fracs) == length(boundary))
+    boundary_type <- match.arg(boundary_type)
+    inx_na <- which(is.na(boundary))
+    stopifnot(1 == length(inx_na))
+
+    if ("zscore" == boundary_type) {
+        vec <- c(0, 5)
+    } else {
+        vec <- c(0, alpha)
+    }
+
+    rst <- optim(par    = 0,
+                 fn     = fx,
+                 method = "Brent",
+                 lower  = vec[1],
+                 upper  = vec[2],
+                 ...)
+
+    if (0 != rst$convergence)
+        return(NULL)
+
+    bd         <- boundary
+    bd[inx_na] <- rst$par
+    rst        <- stb_tl_gsd_prob(info_fracs    = info_fracs,
+                                  boundary      = bd,
+                                  boundary_type = boundary_type,
+                                  alpha         = alpha,
+                                  power         = power)
+    ## return
+    rst
+}
+
 
 #' GSD Enrollment
 #'
