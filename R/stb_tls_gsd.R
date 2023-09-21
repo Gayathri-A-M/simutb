@@ -61,19 +61,18 @@ stb_tl_gsd_predpower <- function(zscore, info_frac,
     pnorm(rst)
 }
 
-
-#' GSD boundaries
+#' GSD boundaries by different R packages
 #'
 #'
 #' @export
 #'
-stb_tl_gsd_boundary <- function(typeOfDesign,
-                                info_fracs     = c(0.5),
-                                alpha_spending = c(0.001),
-                                sided          = 1,
-                                alpha          = 0.025,
-                                power          = 0.9,
-                                ...) {
+stb_tl_gsd_rfun <- function(typeOfDesign,
+                            info_fracs     = c(0.5),
+                            alpha_spending = c(0.001),
+                            sided          = 1,
+                            alpha          = 0.025,
+                            rpackage       = c("rpact", "gsDesign"),
+                            ...) {
 
     info_fracs <- sort(info_fracs)
     if (max(info_fracs) < 1) {
@@ -85,16 +84,47 @@ stb_tl_gsd_boundary <- function(typeOfDesign,
         stopifnot(length(info_fracs) == length(alpha_spending))
     }
 
-    rst <- getDesignGroupSequential(typeOfDesign      = typeOfDesign,
-                                    sided             = sided,
-                                    alpha             = alpha,
-                                    informationRates  = info_fracs,
-                                    userAlphaSpending = alpha_spending,
-                                    ...)
+    rpackage <- match.arg(rpackage)
+    if ("rpact" == rpackage) {
+        rst <- getDesignGroupSequential(typeOfDesign      = typeOfDesign,
+                                        sided             = sided,
+                                        alpha             = alpha,
+                                        informationRates  = info_fracs,
+                                        userAlphaSpending = alpha_spending,
+                                        ...)
+    } else {
+        if ("asKD" == typeOfDesign) {
+            x <- gsDesign(k         = length(info_fracs),
+                          timing    = info_fracs,
+                          sfu       = sfPower,
+                          test.type	= sided,
+                          alpha     = alpha,
+                          ...)$upper
+        }
+
+        rst <- list(informationRates = x$sTime,
+                    criticalValues   = x$bound,
+                    stageLevels      = 1 - pnorm(x$bound),
+                    alphaSpent       = cumsum(x$spend))
+    }
+
+    rst
+}
+
+
+#' GSD boundaries
+#'
+#'
+#' @export
+#'
+stb_tl_gsd_boundary <- function(alpha = 0.025, power = 0.9, ...) {
+
+    ## boundary
+    rst <- stb_tl_gsd_rfun(alpha = alpha, ...)
 
     ## power
     rst_rej <- stb_tl_gsd_prob(rst$informationRates,
-                               boundary = rst$criticalValues,
+                               boundary      = rst$criticalValues,
                                boundary_type = "zscore",
                                alpha         = alpha,
                                power         = power)
@@ -228,7 +258,7 @@ stb_tl_gsd_prob <- function(info_fracs    = c(0.5, 1),
     ## MDD
     z_alpha     <- qnorm(1 - alpha)
     theta       <- z_alpha + qnorm(power)
-    mdd_percent <- qnorm(1 - nominal_alpha) / theta
+    mdd_percent <- qnorm(1 - nominal_alpha) / theta / sqrt(info_fracs)
 
     ## return
     data.frame(
@@ -379,6 +409,7 @@ stb_tl_gsd_solve <- function(info_fracs = c(0.2, 1),
 #'
 stb_tl_gsd_enroll <- function(info_frac,
                               n = 500, enroll_rate = 20, min_fu = 6) {
+
     n_ia       <- n * info_frac
     dur_enroll <- n_ia / enroll_rate
     dur_ia     <- dur_enroll + min_fu
@@ -395,7 +426,7 @@ stb_tl_gsd_enroll <- function(info_frac,
 stb_tl_gsd_outcome <- function(info_fracs, ia_power, ...) {
 
 
-    stopifnot(length(info_fracs) == length(info_fracs))
+    stopifnot(length(info_fracs) == length(ia_power))
 
     rst <- c(0, 0)
     for (i in seq_len(length(info_fracs))) {
@@ -410,5 +441,12 @@ stb_tl_gsd_outcome <- function(info_fracs, ia_power, ...) {
         rst <- rst + cur_rst * cur_w
     }
 
-    rst
+    ## total
+    rst_tot <- stb_tl_gsd_enroll(1, ...)
+
+    ## rst
+    c(rst,
+      rst_tot,
+      (rst_tot - rst) / rst_tot,
+      sum(ia_power))
 }

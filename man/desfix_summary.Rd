@@ -7,18 +7,21 @@
 desfix_summary(results, lst_design, ...)
 }
 \description{
-0:stay
+Dose escalation algorithm
 }
 \details{
--12:stop after 6 patients
--13:stop before 6 patients
--14:stop for both DLT and Over FIX
--15:stop for Over FIX
--16:stop for DLT
+0:stay
 
-11: escalate after the 1st patient
-12: escalate after 6 patients
-13: escalate before 6 patients
+-12:stop based on predicted and posterior mean FIX given 6 subjects
+-13:stop based on predicted and posterior mean FIX given 3~5 subjects
+-14:stop due to both over posterior DLT given >=2 subjects and over observed FIX for any subject
+-15:stop due to over observed FIX for any subjects
+-16:stop due to over posterior DLT given >=2 subjects
+No stop rule for DLT when only 1 subject; Has stop rule for FIX for any subject.
 
-2:selected
+11: escalate due to very low observed FIX of the 1st subjects
+12: escalate based on predicted and posterior mean FIX given 6 subjects
+13: escalate based on predicted and posterior mean FIX given 3~5 subjects
+
+2:selected based on predicted and posterior mean FIX given 6 subjects
 }

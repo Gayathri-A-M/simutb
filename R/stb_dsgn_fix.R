@@ -457,26 +457,28 @@ desfix_single_trial <- function(dta_all, lst_design, ...) {
 
 #' Summarize results
 #'
+#' Dose escalation algorithm
+#'
+#' 0:stay
+#'
+#' -12:stop based on predicted and posterior mean FIX given 6 subjects
+#' -13:stop based on predicted and posterior mean FIX given 3~5 subjects
+#' -14:stop due to both over posterior DLT given >=2 subjects and over observed FIX for any subject
+#' -15:stop due to over observed FIX for any subjects
+#' -16:stop due to over posterior DLT given >=2 subjects
+#' No stop rule for DLT when only 1 subject; Has stop rule for FIX for any subject.
+#'
+#' 11: escalate due to very low observed FIX of the 1st subjects
+#' 12: escalate based on predicted and posterior mean FIX given 6 subjects
+#' 13: escalate based on predicted and posterior mean FIX given 3~5 subjects
+#'
+#' 2:selected based on predicted and posterior mean FIX given 6 subjects
+#'
+#'
 #' @export
 #'
 desfix_summary <- function(results, lst_design, ...) {
 
-    #' Dose escalation algorithm
-    #'
-    #' 0:stay
-    #'
-    #' -12:stop based on predicted and posterior mean FIX given 6 subjects
-    #' -13:stop based on predicted and posterior mean FIX given 3~5 subjects
-    #' -14:stop due to both over posterior DLT given >=2 subjects and over observed FIX for any subject
-    #' -15:stop due to over observed FIX for any subjects
-    #' -16:stop due to over posterior DLT given >=2 subjects
-    #' No stop rule for DLT when only 1 subject; Has stop rule for FIX for any subject.
-    #'
-    #' 11: escalate due to very low observed FIX of the 1st subjects
-    #' 12: escalate based on predicted and posterior mean FIX given 6 subjects
-    #' 13: escalate based on predicted and posterior mean FIX given 3~5 subjects
-    #'
-    #' 2:selected based on predicted and posterior mean FIX given 6 subjects
 
     m_true <- lst_design$mean_raw
     n_dose <- length(m_true)

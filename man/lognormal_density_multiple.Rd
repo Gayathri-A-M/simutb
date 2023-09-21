@@ -4,7 +4,15 @@
 \alias{lognormal_density_multiple}
 \title{Plot multiple density for FIX}
 \usage{
-lognormal_density_multiple(true_m, true_cv, xlab_name, logYN)
+lognormal_density_multiple(
+  cut,
+  true_m,
+  true_cv,
+  xlab_name,
+  para_notation,
+  logYN,
+  percent
+)
 }
 \description{
 Plot multiple density for FIX

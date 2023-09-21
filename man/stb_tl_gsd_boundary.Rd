@@ -4,14 +4,7 @@
 \alias{stb_tl_gsd_boundary}
 \title{GSD boundaries}
 \usage{
-stb_tl_gsd_boundary(
-  ...,
-  info_fracs = c(0.5),
-  alpha_spending = c(0.001),
-  sided = 1,
-  alpha = 0.025,
-  power = 0.9
-)
+stb_tl_gsd_boundary(alpha = 0.025, power = 0.9, ...)
 }
 \description{
 GSD boundaries

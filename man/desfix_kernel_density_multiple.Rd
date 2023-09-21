@@ -6,10 +6,11 @@
 \usage{
 desfix_kernel_density_multiple(
   x,
+  cut,
   xlab_name,
   para_notation,
-  percent,
   logYN,
+  percent,
   from,
   to
 )

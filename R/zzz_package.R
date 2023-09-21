@@ -19,7 +19,10 @@
 #' @importFrom tidyr gather
 #' @importFrom data.table rbindlist
 #' @importFrom survival Surv survfit coxph survdiff
+#'
 #' @importFrom rpact getDesignGroupSequential
+#' @importFrom gsDesign gsDesign gsBoundSummary sfPower sfPoints
+#'
 #' @importFrom mvtnorm rmvnorm pmvnorm dmvnorm
 #' @importFrom survminer ggsurvplot ggsurvplot_facet
 #' @importFrom mmrm mmrm df_1d
