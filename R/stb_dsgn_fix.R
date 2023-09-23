@@ -30,14 +30,14 @@ internal_desfix_dpara <- function() {
          dlt_thresh_c         = 0.8,
          dlt_prior            = c(0.1, 0.9),
          fix_thresh           = 0.1,
-         fix_prior_meanraw    = c(20, 150),
+         fix_prior_meanraw    = c(20, 100),
          fix_prior_cv         = c(0.4, 1.2),
          fix_interval_ind     = c(5, 150),
          fix_interval_meanraw = c(35, 70),
-         fix_prior_meaninc    = c(5, 10),
+         fix_prior_meaninc    = c(0, 50),
          algorithm            = desfix_algorithm_1,
          mean_raw             = c(20, 50, 80, 100),
-         cv                   = 0.8,
+         cv                   = 0.5,
          dlt_rates            = c(0.01, 0.01, 0.02, 0.02),
          ar_dose              = 2,
          bayes_model          = "independent",
@@ -222,7 +222,7 @@ desfix_algorithm_1 <- function(cur_data, lst_design, data_hist = NULL, ...) {
         res[1] <- 11
         return(res)
     } else if (dta_fix[1] >= fix_interval_ind[2]) { # 1st output of get_guarded()
-        res[1] <- -16
+        res[1] <- -15
         return(res)
     } else {
         res[1] <- 0
@@ -313,7 +313,7 @@ desfix_algorithm_1 <- function(cur_data, lst_design, data_hist = NULL, ...) {
 
 #' Bayesian log normal models
 #'
-#' For y, L_m and U_m, input *100; that is m %
+#' For y, L_m and U_m
 #'
 #' @export
 #'
@@ -376,38 +376,28 @@ desfix_bayes = function(y, L_m, U_m, L_cv, U_cv, L_m_inc = NA, U_m_inc = NA,
     lst_data = list(N       = length(y),
                     n_dose  = n_dose,
                     DL      = dl,
-                    y       = y/100,
-                    L_m     = L_m/100,
-                    U_m     = U_m/100,
+                    y       = y,
+                    L_m     = L_m,
+                    U_m     = U_m,
                     L_cv    = L_cv,
                     U_cv    = U_cv,
-                    L_m_inc = L_m_inc/100,
-                    U_m_inc = U_m_inc/100)
+                    L_m_inc = L_m_inc,
+                    U_m_inc = U_m_inc)
 
     if (mdl == "independent") {
-        init <- function(chain_id = 1) {
-            list(m = (L_m+U_m)/2/100, cv = (L_cv+U_cv)/2)
-        }
-        fit <- stan(file = 'fix_ind.stan', data = lst_data, init = init)
+        fit <- stan(file = 'fix_ind.stan', data = lst_data)
     } else if (mdl == "same_cv"){
-        init <- function(chain_id = 1) {
-            list(m = rep((L_m+U_m)/2/100, lst_data$n_dose), cv = (L_cv+U_cv)/2)
-        }
-        fit <- stan(file = 'fix_samecv.stan', data = lst_data, init = init)
+        fit <- stan(file = 'fix_samecv.stan', data = lst_data)
     } else if (mdl == "monotone"){
-        init <- function(chain_id = 1) {
-            list(alpha = c((L_m+U_m)/2/100, rep((L_m_inc+U_m_inc)/2/100, lst_data$n_dose-1)),
-                 cv = (L_cv+U_cv)/2)
-        }
-        fit <- stan(file = 'fix_mono.stan', data = lst_data, init = init)
+        fit <- stan(file = 'fix_mono.stan', data = lst_data)
     }
 
                                         # fit <- stb_stan(lst_data, stan_mdl = mdl, ...)
 
     post_par     = rstan::extract(fit)
-    post_m       = data.frame(post_par$m * 100)
+    post_m       = data.frame(post_par$m)
     post_cv      = data.frame(post_par$cv)
-    post_y_tilde = data.frame(post_par$y_tilde * 100)
+    post_y_tilde = data.frame(post_par$y_tilde)
     rst <- list(post_m       = post_m,
                 post_cv      = post_cv,
                 post_y_tilde = post_y_tilde)

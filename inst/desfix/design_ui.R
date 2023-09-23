@@ -235,7 +235,7 @@ tab_simulation_study <- function(){
            sidebarLayout(
              sidebarPanel(
                textInput("true_m", "True Mean of FIX Functional Activity for all Cohorts (y%) (Use ',' to Split)", "20, 50, 80, 100"),
-               textInput("true_cv","True Coefficient of Variation (CV) of FIX Functional Activity for all Cohorts (Use ',' to Split for different CV)", 0.8),
+               textInput("true_cv","True Coefficient of Variation (CV) of FIX Functional Activity for all Cohorts (Use ',' to Split for different CV)", 0.5),
                textInput("true_p", "True DLT Rate for all Cohorts (Use ',' to Split)", "0.01, 0.01, 0.02, 0.02"),
                textInput("ar_dose", "Upper and Lower Bounds of Ideal Admissible Doses (Use ',' to Split)", "2"),
                numericInput("n_sim","Number of Simulation Replicates",100),

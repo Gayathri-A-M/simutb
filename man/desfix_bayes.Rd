@@ -19,5 +19,5 @@ desfix_bayes(
 )
 }
 \description{
-For y, L_m and U_m, input *100; that is m %
+For y, L_m and U_m
 }
