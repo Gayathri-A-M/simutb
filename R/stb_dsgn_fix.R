@@ -350,8 +350,7 @@ desfix_bayes = function(y, L_m, U_m, L_cv, U_cv, L_m_inc = NA, U_m_inc = NA,
     dl <- NULL
     if ("independent" == bayes_model |
         0 == nrow(hist_lvs)) {
-                                        # mdl    <- "fix_ind"
-        mdl <- "independent"
+        mdl <- "fix_ind"
         n_dose <- 1
     } else {
         y_temp <- NULL
@@ -367,10 +366,9 @@ desfix_bayes = function(y, L_m, U_m, L_cv, U_cv, L_m_inc = NA, U_m_inc = NA,
         n_dose <- nrow(hist_lvs) + 1
         dl     <- c(dl,     rep(n_dose, length(y)))
         y      <- c(y_temp, y)
-                                        # mdl    <- switch(bayes_model,
-                                        #                  "same_cv"  = "fix_samecv",
-                                        #                  "monotone" = "fix_mono")
-        mdl <- bayes_model
+        mdl    <- switch(bayes_model,
+                         "same_cv"  = "fix_samecv",
+                         "monotone" = "fix_mono")
     }
 
     lst_data = list(N       = length(y),
@@ -384,15 +382,7 @@ desfix_bayes = function(y, L_m, U_m, L_cv, U_cv, L_m_inc = NA, U_m_inc = NA,
                     L_m_inc = L_m_inc,
                     U_m_inc = U_m_inc)
 
-    if (mdl == "independent") {
-        fit <- stan(file = 'fix_ind.stan', data = lst_data)
-    } else if (mdl == "same_cv"){
-        fit <- stan(file = 'fix_samecv.stan', data = lst_data)
-    } else if (mdl == "monotone"){
-        fit <- stan(file = 'fix_mono.stan', data = lst_data)
-    }
-
-                                        # fit <- stb_stan(lst_data, stan_mdl = mdl, ...)
+    fit <- stb_stan(lst_data, stan_mdl = mdl, ...)
 
     post_par     = rstan::extract(fit)
     post_m       = data.frame(post_par$m)
