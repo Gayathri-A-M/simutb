@@ -100,7 +100,7 @@ desfix_generate_patients_cv <- function(mean_raw, cv, ...) {
 desfix_generate_patients <- function(mean_log, sd_log, dlt_rate, n_patients) {
 
     stopifnot(length(mean_log) == length(sd_log) &
-              length(mean_log) == length(dlt_rate))
+                  length(mean_log) == length(dlt_rate))
 
     func_act <- mapply(rlnorm,
                        n       = n_patients,
@@ -228,7 +228,7 @@ desfix_algorithm_1 <- function(cur_data, lst_design, data_hist = NULL, ...) {
         res[1] <- 0
     }
 
-                                        # remove unused simulated data
+    # remove unused simulated data
     if (is.null(data_hist)) {
         data_hist_no_na <- data_hist
     } else {
@@ -350,7 +350,8 @@ desfix_bayes = function(y, L_m, U_m, L_cv, U_cv, L_m_inc = NA, U_m_inc = NA,
     dl <- NULL
     if ("independent" == bayes_model |
         0 == nrow(hist_lvs)) {
-        mdl <- "fix_ind"
+        mdl    <- "fix_ind"
+        # mdl <- "independent"
         n_dose <- 1
     } else {
         y_temp <- NULL
@@ -369,6 +370,7 @@ desfix_bayes = function(y, L_m, U_m, L_cv, U_cv, L_m_inc = NA, U_m_inc = NA,
         mdl    <- switch(bayes_model,
                          "same_cv"  = "fix_samecv",
                          "monotone" = "fix_mono")
+        # mdl <- bayes_model
     }
 
     lst_data = list(N       = length(y),
@@ -381,6 +383,14 @@ desfix_bayes = function(y, L_m, U_m, L_cv, U_cv, L_m_inc = NA, U_m_inc = NA,
                     U_cv    = U_cv,
                     L_m_inc = L_m_inc,
                     U_m_inc = U_m_inc)
+
+    # if (mdl == "independent") {
+    #     fit <- stan(file = 'fix_ind.stan', data = lst_data)
+    # } else if (mdl == "same_cv"){
+    #     fit <- stan(file = 'fix_samecv.stan', data = lst_data)
+    # } else if (mdl == "monotone"){
+    #     fit <- stan(file = 'fix_mono.stan', data = lst_data)
+    # }
 
     fit <- stb_stan(lst_data, stan_mdl = mdl, ...)
 
@@ -477,11 +487,15 @@ desfix_summary <- function(results, lst_design, ...) {
     prob_es_after           = table(results[results$decision == 12, c("dose_level")]) / n_rep
     prob_es_before          = table(results[results$decision == 13, c("dose_level")]) / n_rep
 
-    prob_stop = sum(results$decision<0)/n_rep
+    prob_stop     = sum(results$decision<0)/n_rep
     prob_more_h   = sum(results$decision %in% c(11,12,13) & results$dose_level == n_dose)/n_rep
     ave_n         = apply(table(results[, c("dose_level","rep")]), 1, mean)
-    ave_n_5       = table(results[,"dose_level"],factor(results$functional_activity<5,levels=c(FALSE,TRUE),labels=c(FALSE,TRUE)))[,2]/n_rep
-    ave_n_150     = table(results[,"dose_level"],factor(results$functional_activity>150,levels=c(FALSE,TRUE),labels=c(FALSE,TRUE)))[,2]/n_rep
+    ave_n_lower   = table(results[,"dose_level"],
+                          factor(results$functional_activity<lst_design$fix_interval_ind[1],
+                                 levels=c(FALSE,TRUE),labels=c(FALSE,TRUE)))[,2]/n_rep
+    ave_n_upper   = table(results[,"dose_level"],
+                          factor(results$functional_activity>=lst_design$fix_interval_ind[2],
+                                 levels=c(FALSE,TRUE),labels=c(FALSE,TRUE)))[,2]/n_rep
     ave_n_total   = mean(apply(table(results[,c("dose_level","rep")]), 2, sum))
 
     table_results <- data.frame(DLT_rate = lst_design$dlt_rates,
@@ -496,13 +510,13 @@ desfix_summary <- function(results, lst_design, ...) {
                                 prob_es_after = as.numeric(round(prob_es_after*100,1)),
                                 prob_es_before = as.numeric(round(prob_es_before*100,1)),
                                 ave_n = round(ave_n, 2),
-                                ave_n_5 = round(ave_n_5, 2),
-                                ave_n_150 = round(ave_n_150, 2),
+                                ave_n_lower = round(ave_n_lower, 2),
+                                ave_n_upper = round(ave_n_upper, 2),
                                 ave_n_total=c(rep("",length(m_true)-1),round(ave_n_total,2)),
                                 prob_stop = c(rep("",length(m_true)-1),round(prob_stop*100,1)),
                                 prob_more_h=c(rep("",length(m_true)-1),round(prob_more_h*100,1)))
 
-    colnames(table_results) = c("DLT Rate (%)",
+    colnames(table_results) = c("DLT Rate",
                                 "Mean of FIX (%)",
                                 "Prob. Select (%)",
                                 paste("Prob. stop based on predicted and posterior mean FIX given",lst_design$n_pt_max,"subjects (%)"),
@@ -514,8 +528,8 @@ desfix_summary <- function(results, lst_design, ...) {
                                 paste("Prob. escalate based on predicted and posterior mean FIX given",lst_design$n_pt_max,"subjects (%)"),
                                 paste("Prob. escalate based on predicted and posterior mean FIX given",lst_design$n_pt_min,"~",lst_design$n_pt_max-1,"subjects (%)"),
                                 "Ave. No. of treated subjects",
-                                "Ave. No. of treated subjects with FIX < 5%",
-                                "Ave. No. of treated subjects with FIX > 150%",
+                                paste("Ave. No. of treated subjects with FIX <",lst_design$fix_interval_ind[1],"%"),
+                                paste("Ave. No. of treated subjects with FIX >=",lst_design$fix_interval_ind[2],"%"),
                                 "Ave. total No. of treated subjects",
                                 "Prob. stop (%)",
                                 paste("Prob. select >", n_dose, "(%)"))
@@ -734,14 +748,14 @@ desfix_kernel_density_multiple = function(x,cut,xlab_name,para_notation,logYN,pe
     }
 
     cum_prob_L = unique(x %>% group_by(dose_level) %>%
-                        mutate(p=round(mean(functional_activity<cut[1]),3)) %>%
-                        select(dose_level,p))[["p"]]
+                            mutate(p=round(mean(functional_activity<cut[1]),3)) %>%
+                            select(dose_level,p))[["p"]]
     cum_prob_M = unique(x %>% group_by(dose_level) %>%
-                        mutate(p=round(mean(functional_activity>=cut[1] & functional_activity<=cut[2]),3)) %>%
-                        select(dose_level,p))[["p"]]
+                            mutate(p=round(mean(functional_activity>=cut[1] & functional_activity<=cut[2]),3)) %>%
+                            select(dose_level,p))[["p"]]
     cum_prob_U = unique(x %>% group_by(dose_level) %>%
-                        mutate(p=round(mean(functional_activity>cut[2]),3)) %>%
-                        select(dose_level,p))[["p"]]
+                            mutate(p=round(mean(functional_activity>cut[2]),3)) %>%
+                            select(dose_level,p))[["p"]]
 
     cum_prob_L_label = paste0("[", paste(format(cum_prob_L, nsmall = 3), collapse=", "), "]")
     cum_prob_M_label = paste0("[", paste(format(cum_prob_M, nsmall = 3), collapse=", "), "]")
@@ -765,24 +779,30 @@ desfix_kernel_density_multiple = function(x,cut,xlab_name,para_notation,logYN,pe
 
     den_data = function(x,range_DL,from,to){
         temp_den = sapply(min(range_DL):max(range_DL),function(i){
-            if (is.na(from) & is.na(to)) {
-                density(x[x$dose_level==i,]$functional_activity,adjust=adjust)
-            } else if (is.na(from) & !is.na(to)){
-                density(x[x$dose_level==i,]$functional_activity,to=to,adjust=adjust)
-            } else if (!is.na(from) & is.na(to)){
-                density(x[x$dose_level==i,]$functional_activity,from=from,adjust=adjust)
-            } else {
-                density(x[x$dose_level==i,]$functional_activity,from=from,to=to,adjust=adjust)
+            if (dim(x[x$dose_level==i,])[1]<2){
+                return(data.frame(y=NA,f=NA,dose_level=NA))
             }
+
+            if (is.na(from) & is.na(to)) {
+                den_i = density(x[x$dose_level==i,]$functional_activity,adjust=adjust)
+            } else if (is.na(from) & !is.na(to)){
+                den_i = density(x[x$dose_level==i,]$functional_activity,to=to,adjust=adjust)
+            } else if (!is.na(from) & is.na(to)){
+                den_i = density(x[x$dose_level==i,]$functional_activity,from=from,adjust=adjust)
+            } else {
+                den_i = density(x[x$dose_level==i,]$functional_activity,from=from,to=to,adjust=adjust)
+            }
+            return(data.frame(y=den_i$x,f=den_i$y,dose_level=i))
         })
 
         den = c()
         for (i in min(range_DL):max(range_DL)){
-            den = rbind(den,data.frame(y=temp_den[,i]$x,f=temp_den[,i]$y,dose_level=i))
+            den = rbind(den,data.frame(temp_den[,i]))
         }
         return(den)
     }
     data = data.frame(den_data(x,range_DL,from,to),group="1",group2="1")
+    data = data[!is.na(data$dose_level),]
 
     data_L = data[data$y<cut[1],]
     data_M = data[data$y>=cut[1] & data$y<=cut[2],]
