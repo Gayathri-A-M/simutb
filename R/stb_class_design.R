@@ -782,8 +782,8 @@ setMethod("stb_create_analysis_set",
               data_interim_nb <- rcurrent_get_nb(data_interim)
 
               ## TO BE ADDED
-              ## INPUT: data_interim_nb, alpha, and power
-              ## OUTPUT: n_stage2, target_event
+              ## INPUT: data_interim_nb, hr, alpha, and power
+              ## OUTPUT: n_stage2, r0, r1
 
               data_final <- rcurrent_day_eos_adapt_2(
                   data,
