@@ -24,8 +24,12 @@ rcurrent_describe <- function(x, ...) {
     cat("    k_by_arm:       dispersion for each arm, smaller the bigger variance\n")
     cat("                    (default c(1, 1))\n")
     cat("    alpha:          alpha level (default 0.025)\n")
-    cat("    max_n_event:    Maximum number of events (default 10)\n")
+    cat("    power:          power level (default 0.95)\n")
+    cat("    max_n_event:    Maximum number of events for each patient (default 10)\n")
     cat("    par_enroll:     list of enrollment parameters \n")
+    cat("    n_stage1:       no. of patients for stage 1 (default 100) \n")
+    cat("    fix_fu:         fixed FU days (default 12 * 7) \n")
+    cat("    rcur_info:      Information ratio in recurrent events (default 0.2) \n")
 }
 
 
@@ -39,7 +43,11 @@ internal_rcurrent_dpara <- function() {
          k_by_arm          = c(1, 1),
          par_enroll        = list(type = "by_duration", pt_dur_mth = 16),
          max_n_event       = 10,
-         alpha             = 0.025
+         alpha             = 0.025,
+         power             = 0.9,
+         n_stage1          = 100,
+         fix_fu            = 12 * 7,
+         rcur_info         = 0.2
          )
 }
 
@@ -98,7 +106,9 @@ rcurrent_gen_data <- function(lst_design, seed = NULL, ...) {
 #'
 #' Generate analysis dataset for minimum fu days
 #'
-rcurrent_day_eos_1 <- function(data_full, min_fu_days = 12 * 7, pt_proportion = 1) {
+rcurrent_day_eos_1 <- function(data_full,
+                               min_fu_days   = 12 * 7,
+                               pt_proportion = 1) {
     dat <- data_full %>%
         select(arm, sid, day_enroll) %>%
         distinct() %>%
@@ -131,6 +141,89 @@ rcurrent_day_eos_2 <- function(data_full, fu_days = 12 * 7, pt_proportion = 1) {
                   by = c("arm", "sid"))
 }
 
+#' Generate analysis data set
+#'
+#' Generate final analysis dataset for 1) stage 1 patients with fixed fu, 2)
+#' stage 2 patients with fixed fu, 3) target number of events
+#'
+#'
+rcurrent_day_eos_adapt_1 <- function(data_full, n_stage1, fix_fu = 12 * 7) {
+
+    dat <- data_full %>%
+        select(arm, sid, date_enroll) %>%
+        distinct() %>%
+        arrange(date_enroll)
+
+    date_eos_1 <- dat[n_stage1, "date_enroll"] + 1
+    rst        <- data_full %>%
+        mutate(date_eos_1 = date_eos_1,
+               date_eos_2 = date_enroll + fix_fu,
+               date_eos   = if_else(date_eos_1 < date_eos_2,
+                                    date_eos_1,
+                                    date_eos_2),
+               day_eos    = as.numeric(date_eos - date_bos)) %>%
+        rcurrent_censor()
+
+    rst
+}
+
+
+#' Generate analysis data set
+#'
+#' Generate final analysis dataset for 1) stage 1 patients with fixed fu, 2)
+#' stage 2 patients with fixed fu, 3) target number of events
+#'
+#'
+rcurrent_day_eos_adapt_2 <- function(data_full,
+                                     n_stage1,
+                                     n_stage2,
+                                     target_event,
+                                     rcur_info = 0.2,
+                                     fix_fu    = 12 * 7) {
+
+    dat <- data_full %>%
+        select(arm, sid, date_enroll) %>%
+        distinct() %>%
+        arrange(date_enroll)
+
+    dat_stage1 <- dat %>%
+        slice(1:n_stage1) %>%
+        left_join(data_full, by = c("arm" = "arm", "sid" = "sid"))
+
+    dat_stage2 <- dat %>%
+        slice(n_stage1 + 1:n_stage2) %>%
+        left_join(data_full, by = c("arm" = "arm", "sid" = "sid"))
+
+    ## last patient FU finished
+    date_eos_1 <- dat_stage2[n_stage1, "date_enroll"] + fix_fu
+
+    ## target event observed
+    dat_stage2_target <- dat_stage2 %>%
+        arrange(day_end) %>%
+        mutate(nevent   = if_else(1 == inx, 1, rcur_info),
+               cumevent = cumsum(nevent)) %>%
+        filter(cumevent <= target_event) %>%
+        slice_tail(1) %>%
+        mutate(date_eos = date_bos + day_start + 1)
+
+    date_eos_2 <- dat_stage2_target[1, "date_eos"]
+
+    ## make sure stage 1 patients have FU
+    date_eos_12 <- max(date_eos_1, date_eos_2)
+
+    ##
+    rst <- rbind(dat_stage1, dat_stage2) %>%
+        mutate(date_eos_1 = date_eos_12,
+               date_eos_2 = date_enroll + fix_fu,
+               date_eos   = if_else(date_eos_1 < date_eos_2,
+                                    date_eos_1,
+                                    date_eos_2),
+               day_eos    = as.numeric(date_eos - date_bos)) %>%
+        rcurrent_censor()
+}
+
+
+
 #' Generate censoring data
 #'
 #'
@@ -158,9 +251,10 @@ rcurrent_get_nb <- function(data_full) {
 
         cur_rst <- cur_count %>%
             left_join(data_full %>%
-                      select(sid, arm, lambda, day_enroll) %>%
+                      select(sid, arm, lambda, day_enroll, day_eos) %>%
                       distinct(),
-                      by = c("arm", "sid"))
+                      by = c("arm", "sid")) %>%
+            mutate(day_onstudy = day_eos - day_enroll)
 
         rst <- rbind(rst, cur_rst)
     }

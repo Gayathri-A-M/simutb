@@ -35,6 +35,54 @@ stb_tl_rc_power <- function(n, mu_t, r0, r1, k = 1, alpha = 0.05) {
     pnorm(ss)
 }
 
+#' Sample size calculation
+#'
+#' Sample size calculation using the formula proposed in Zhu and Lakkis (2014)
+#'
+#'
+#' @export
+#'
+stb_tl_rc_size <- function(mu_t, r0, r1, k, alpha, power) {
+
+    solve_n <- function(n) {
+        stb_tl_rc_power(n, mu_t, r0, r1, k, alpha) - power
+    }
+
+    rst <- uniroot(solve_n, var_range)$root
+    rst
+}
+
+#' NB Regression
+#'
+#' NB Regression
+#'
+#'
+#' @export
+#'
+stb_tl_rc_reg <- function(dat, fml = "y ~ offset(log(day_onstudy)) + arm") {
+
+    fml         <- as.formula(fml)
+    mdl_fit     <- glm.nb(fml, data = dat)
+    mdl_summary <- summary(mdl_fit)
+    mdl_coef    <- mdl_summary$coefficient
+
+    r0          <- exp(mdl_coef[1, 1])
+    hr          <- NA
+    pval_loghr  <- NA
+
+    if (2 == nrow(mdl_coef)) {
+        hr          <- mdl_coef[2, 1]
+        pval_loghr  <- mdl_coef[2, 4]
+    }
+
+    para_est <- data.frame(r0   = r0,
+                           hr   = hr,
+                           pval = pval_loghr,
+                           k    = mdl_fit$theta)
+
+    para_est
+}
+
 
 #' Minimal detectable difference
 #'

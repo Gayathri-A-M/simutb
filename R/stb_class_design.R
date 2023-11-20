@@ -18,6 +18,7 @@
 ##      9. STB_DESIGN_MSMA_SURV
 ##     10: STB_DESIGN_DOSE_FIX
 ##     11: STB_DESIGN_COVID
+##     12: STB_DESIGN_RCURRENT_ADAPT
 ##
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
@@ -44,21 +45,23 @@ stb_create_design <- function(type = c("surv_strat",
                                        "rmeasure",
                                        "msma_surv",
                                        "dose_fix",
-                                       "covid")) {
+                                       "covid",
+                                       "rcurrent_adapt")) {
 
     type <- match.arg(type)
     rst  <- switch(type,
-                   surv_strat = new("STB_DESIGN_STRAT_SURV"),
-                   surv_or    = new("STB_DESIGN_SURV_OR"),
-                   surv_join  = new("STB_DESIGN_SURV_JOIN"),
-                   surv_biom  = new("STB_DESIGN_SURV_BIOM"),
-                   bayes_1arm = new("STB_DESIGN_BAYES_1ARM"),
-                   bayes_2arm = new("STB_DESIGN_BAYES_2ARM"),
-                   rcurrent   = new("STB_DESIGN_RCURRENT"),
-                   rmeasure   = new("STB_DESIGN_RMEASURE"),
-                   msma_surv  = new("STB_DESIGN_MSMA_SURV"),
-                   dose_fix   = new("STB_DESIGN_DOSE_FIX"),
-                   covid      = new("STB_DESIGN_COVID"),
+                   surv_strat     = new("STB_DESIGN_STRAT_SURV"),
+                   surv_or        = new("STB_DESIGN_SURV_OR"),
+                   surv_join      = new("STB_DESIGN_SURV_JOIN"),
+                   surv_biom      = new("STB_DESIGN_SURV_BIOM"),
+                   bayes_1arm     = new("STB_DESIGN_BAYES_1ARM"),
+                   bayes_2arm     = new("STB_DESIGN_BAYES_2ARM"),
+                   rcurrent       = new("STB_DESIGN_RCURRENT"),
+                   rmeasure       = new("STB_DESIGN_RMEASURE"),
+                   msma_surv      = new("STB_DESIGN_MSMA_SURV"),
+                   dose_fix       = new("STB_DESIGN_DOSE_FIX"),
+                   covid          = new("STB_DESIGN_COVID"),
+                   rcurrent_adapt = new("STB_DESIGN_RCURRENT_ADAPT"),
                    new("STB_DESIGN"))
 
     rst
@@ -743,4 +746,74 @@ setMethod("stb_simu_gen_summary",
           function(x, lst, ...) {
               rst <- covid_simu_summary(lst, x@design_para$par_analysis, ...)
               rst
+          })
+
+
+## -----------------------------------------------------------------------------
+##                   recurrent event with adaptive sample size
+## -----------------------------------------------------------------------------
+
+#'
+#' @export
+#'
+setClass("STB_DESIGN_RCURRENT_ADAPT",
+         contains = "STB_DESIGN_RCURRENT")
+
+setMethod("stb_generate_data",
+          "STB_DESIGN_RCURRENT_ADAPT",
+          function(x, ...) {
+              rcurrent_gen_data(x@design_para, ...)
+          })
+
+#'
+#' @export
+#'
+setMethod("stb_create_analysis_set",
+          "STB_DESIGN_RCURRENT_ADAPT",
+          function(x, data, ...) {
+
+              if (is.null(data))
+                  return(NULL)
+
+              data_interim <- rcurrent_day_eos_adapt_1(data,
+                                                       x@design_para$n_stage1,
+                                                       x@design_para$fix_fu)
+
+              data_interim_nb <- rcurrent_get_nb(data_interim)
+
+              ## TO BE ADDED
+              ## INPUT: data_interim_nb, alpha, and power
+              ## OUTPUT: n_stage2, target_event
+
+              data_final <- rcurrent_day_eos_adapt_2(
+                  data,
+                  n_stage1 = x@design_para$n_stage1,
+                  n_stage2,
+                  target_event,
+                  rcur_info = x@design_para$rcur_info,
+                  fix_fu    = x@design_para$fix_fu)
+
+              data_final_nb <- rcurrent_get_nb(data_final)
+
+              list(data            = data,
+                   data_interim    = data_interim,
+                   data_interim_nb = data_interim_nb,
+                   data_final      = data_final,
+                   data_final_nb   = data_final)
+          })
+
+
+setMethod("stb_analyze_data",
+          "STB_DESIGN_RCURRENT_ADAPT",
+          function(x, data_ana) {
+
+              dat_final    <- data_ana$data_final
+              dat_final_nb <- data_ana$data_final_nb
+
+              rst <- stb_tl_rc_reg(dat_final_nb)
+              ## sample size and duration
+              rst$study_n   <- length(unique(dat_final$sid))
+              rst$study_dur <- max(dat_final$date_eos) - max(dat_final$bos)
+
+              list(rst)
           })
