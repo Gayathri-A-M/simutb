@@ -25,6 +25,7 @@
 #' @export
 #'
 stb_tl_rc_power <- function(n, mu_t, r0, r1, k = 1, alpha = 0.05) {
+
     v_0 <- 2 / mu_t / r0 + 2 * k
     v_1 <- (1 / r0 + 1 / r1) / mu_t + 2 * k
 
@@ -42,15 +43,44 @@ stb_tl_rc_power <- function(n, mu_t, r0, r1, k = 1, alpha = 0.05) {
 #'
 #' @export
 #'
-stb_tl_rc_size <- function(mu_t, r0, r1, k, alpha, power) {
+stb_tl_rc_size <- function(power, mu_t, r0, r1, k = 1, alpha = 0.05) {
 
-    solve_n <- function(n) {
-        stb_tl_rc_power(n, mu_t, r0, r1, k, alpha) - power
-    }
+    v_0 <- 2 / mu_t / r0 + 2 * k
+    v_1 <- (1 / r0 + 1 / r1) / mu_t + 2 * k
 
-    rst <- uniroot(solve_n, var_range)$root
-    rst
+    ss  <- qnorm(power)
+    ss  <- ss * sqrt(v_1)
+    ss  <- ss +  sqrt(v_0) * qnorm(1 - alpha / 2)
+    ss  <- ss / log(r0 / r1)
+    n   <- 2 * ss^2
+
+    ceiling(n)
 }
+
+#' Estimate event rate based on pooled data
+#'
+#' Estimate event rate based on pooled data
+#'
+#' @export
+#'
+stb_tl_rc_pooled <- function(dat,
+                             hr  = 1,
+                             fml = "y ~ offset(log(day_onstudy))") {
+
+    mdl_rst   <- stb_tl_rc_reg(dat, fml = fml)
+    r_overall <- mdl_rst$r0
+
+    r0        <- 2 * r_overall / (1 + hr)
+    r1        <- r0 * hr
+    k         <- mdl_rst$k
+
+    data.frame(r_overall = r_overall,
+               r0        = r0,
+               r1        = r1,
+               k         = k)
+}
+
+
 
 #' NB Regression
 #'
@@ -101,8 +131,8 @@ stb_tl_rc_reg <- function(dat, fml = "y ~ offset(log(day_onstudy)) + arm") {
 #' @export
 #'
 stb_tl_rc_mdd <- function(var_solve    = c("r1", "r0", "n", "mu_t"),
-                       target_power = 0.5,
-                       ...) {
+                          target_power = 0.5,
+                          ...) {
 
     ft <- function(x) {
         pars_x[[var_solve]] <- x

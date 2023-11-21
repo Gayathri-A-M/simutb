@@ -4,7 +4,7 @@
 \alias{stb_tl_rc_size}
 \title{Sample size calculation}
 \usage{
-stb_tl_rc_size(mu_t, r0, r1, k, alpha, power)
+stb_tl_rc_size(power, mu_t, r0, r1, k = 1, alpha = 0.05)
 }
 \description{
 Sample size calculation using the formula proposed in Zhu and Lakkis (2014)

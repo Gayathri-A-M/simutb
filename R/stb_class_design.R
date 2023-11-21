@@ -466,6 +466,18 @@ setMethod("stb_create_analysis_set",
                    data_nb = dat_nb)
           })
 
+setMethod("stb_simu_gen_summary",
+          "STB_DESIGN_RCURRENT",
+          function(x, lst, ...) {
+              rst <- NULL
+              for (i in seq_len(length(lst))) {
+                  rst <- rbind(rst,
+                               lst[[i]][[1]])
+              }
+
+              list(rst)
+          })
+
 
 ## -----------------------------------------------------------------------------
 ##                        repeated measure
@@ -775,45 +787,23 @@ setMethod("stb_create_analysis_set",
               if (is.null(data))
                   return(NULL)
 
-              data_interim <- rcurrent_day_eos_adapt_1(data,
-                                                       x@design_para$n_stage1,
-                                                       x@design_para$fix_fu)
-
-              data_interim_nb <- rcurrent_get_nb(data_interim)
-
-              ## TO BE ADDED
-              ## INPUT: data_interim_nb, hr, alpha, and power
-              ## OUTPUT: n_stage2, r0, r1
-
-              data_final <- rcurrent_day_eos_adapt_2(
-                  data,
-                  n_stage1 = x@design_para$n_stage1,
-                  n_stage2,
-                  target_event,
-                  rcur_info = x@design_para$rcur_info,
-                  fix_fu    = x@design_para$fix_fu)
-
-              data_final_nb <- rcurrent_get_nb(data_final)
-
-              list(data            = data,
-                   data_interim    = data_interim,
-                   data_interim_nb = data_interim_nb,
-                   data_final      = data_final,
-                   data_final_nb   = data_final)
+              rcurrent_adapt_ana_set(data, x@design_para)
           })
 
-
+#'
+#' @export
+#'
 setMethod("stb_analyze_data",
           "STB_DESIGN_RCURRENT_ADAPT",
           function(x, data_ana) {
 
               dat_final    <- data_ana$data_final
               dat_final_nb <- data_ana$data_final_nb
+              rst          <- stb_tl_rc_reg(dat_final_nb)
 
-              rst <- stb_tl_rc_reg(dat_final_nb)
               ## sample size and duration
               rst$study_n   <- length(unique(dat_final$sid))
-              rst$study_dur <- max(dat_final$date_eos) - max(dat_final$bos)
-
+              rst$study_dur <- max(dat_final$date_eos) - max(dat_final$date_bos)
+              rst           <- cbind(data_ana$interim_rst, rst)
               list(rst)
           })

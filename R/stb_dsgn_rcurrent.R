@@ -30,6 +30,9 @@ rcurrent_describe <- function(x, ...) {
     cat("    n_stage1:       no. of patients for stage 1 (default 100) \n")
     cat("    fix_fu:         fixed FU days (default 12 * 7) \n")
     cat("    rcur_info:      Information ratio in recurrent events (default 0.2) \n")
+    cat("    ssr_zone:       range of total size that will trigger sample size  \n")
+    cat("                    adaptation (default c(1.2, 2))\n")
+
 }
 
 
@@ -47,7 +50,8 @@ internal_rcurrent_dpara <- function() {
          power             = 0.9,
          n_stage1          = 100,
          fix_fu            = 12 * 7,
-         rcur_info         = 0.2
+         rcur_info         = 0.2,
+         ssr_zone          = c(1.2, 2)
          )
 }
 
@@ -176,10 +180,10 @@ rcurrent_day_eos_adapt_1 <- function(data_full, n_stage1, fix_fu = 12 * 7) {
 #'
 rcurrent_day_eos_adapt_2 <- function(data_full,
                                      n_stage1,
-                                     n_stage2,
-                                     target_event,
-                                     rcur_info = 0.2,
-                                     fix_fu    = 12 * 7) {
+                                     n_stage2       = 0,
+                                     tar_eve_stage2 = 0,
+                                     rcur_info      = 0.2,
+                                     fix_fu         = 12 * 7) {
 
     dat <- data_full %>%
         select(arm, sid, date_enroll) %>%
@@ -188,30 +192,39 @@ rcurrent_day_eos_adapt_2 <- function(data_full,
 
     dat_stage1 <- dat %>%
         slice(1:n_stage1) %>%
-        left_join(data_full, by = c("arm" = "arm", "sid" = "sid"))
+        select(-date_enroll) %>%
+        left_join(data_full,
+                  by = c("arm" = "arm", "sid" = "sid"))
 
-    dat_stage2 <- dat %>%
-        slice(n_stage1 + 1:n_stage2) %>%
-        left_join(data_full, by = c("arm" = "arm", "sid" = "sid"))
+    if (0 == n_stage2) {
+        dat_stage2  <- NULL
+        date_eos_12 <- max(dat_stage1$date_enroll + fix_fu) + 1
+    } else {
+        dat_stage2 <- dat %>%
+            slice(n_stage1 + 1:n_stage2) %>%
+            select(-date_enroll) %>%
+            left_join(data_full,
+                      by = c("arm" = "arm",
+                             "sid" = "sid"))
 
-    ## last patient FU finished
-    date_eos_1 <- dat_stage2[n_stage1, "date_enroll"] + fix_fu
+        ## last patient FU finished
+        date_eos_1 <- dat_stage2[n_stage1, "date_enroll"] + fix_fu
 
-    ## target event observed
-    dat_stage2_target <- dat_stage2 %>%
-        arrange(day_end) %>%
-        mutate(nevent   = if_else(1 == inx, 1, rcur_info),
-               cumevent = cumsum(nevent)) %>%
-        filter(cumevent <= target_event) %>%
-        slice_tail(1) %>%
-        mutate(date_eos = date_bos + day_start + 1)
+        ## target event observed
+        dat_stage2_target <- dat_stage2 %>%
+            arrange(day_end) %>%
+            mutate(nevent   = if_else(1 == inx, 1, rcur_info),
+                   cumevent = cumsum(nevent)) %>%
+            filter(cumevent <= tar_eve_stage2) %>%
+            slice_tail(n = 1) %>%
+            mutate(date_eos = date_bos + day_start + 1)
 
-    date_eos_2 <- dat_stage2_target[1, "date_eos"]
+        date_eos_2 <- dat_stage2_target[1, "date_eos"]
 
-    ## make sure stage 1 patients have FU
-    date_eos_12 <- max(date_eos_1, date_eos_2)
+        ## make sure stage 1 patients have FU
+        date_eos_12 <- max(date_eos_1, date_eos_2)
+    }
 
-    ##
     rst <- rbind(dat_stage1, dat_stage2) %>%
         mutate(date_eos_1 = date_eos_12,
                date_eos_2 = date_enroll + fix_fu,
@@ -260,4 +273,88 @@ rcurrent_get_nb <- function(data_full) {
     }
 
     rst
+}
+
+#' Rcurrent adaptive design
+#'
+#'
+#' @export
+#'
+rcurrent_adapt_ana_set <- function(data, lst_design) {
+
+    f_tar <- function(n, r, fu, rcur_info) {
+        r <- r * fu
+
+        if (r > 1) {
+            rst <- n * (1 + (r - 1) * rcur_info)
+        } else {
+            rst <- n * r
+        }
+
+        rst
+    }
+
+    ## design parameters
+    hr        <- lst_design$hr_by_arm
+    fix_fu    <- lst_design$fix_fu
+    n_stage1  <- lst_design$n_stage1
+    alpha     <- lst_design$alpha
+    power     <- lst_design$power
+    k         <- lst_design$k_by_arm[1]
+    ssr_zone  <- lst_design$ssr_zone
+    rcur_info <- lst_design$rcur_info
+    hr        <- hr[2] / hr[1]
+
+    ## interim when all n_stage1 pts have been enrolled
+    data_interim <- rcurrent_day_eos_adapt_1(data,
+                                             n_stage1 = n_stage1,
+                                             fix_fu   = fix_fu)
+
+    data_interim_nb <- rcurrent_get_nb(data_interim)
+
+    ## sample size re_estimated
+    inter_rst  <- stb_tl_rc_pooled(data_interim_nb, hr = hr)
+    smp_size   <- stb_tl_rc_size(power,
+                                 fix_fu,
+                                 inter_rst$r0,
+                                 inter_rst$r1,
+                                 k,
+                                 alpha)
+
+    ss_r <- smp_size / n_stage1
+    if (ss_r < ssr_zone[1] |
+        ss_r > ssr_zone[2]) {
+        n_stage2       <- 0
+        tar_eve_stage2 <- 0
+    } else {
+        n_stage2       <- smp_size - n_stage1
+        tar_eve_stage2 <- f_tar(n_stage2, inter_rst$r_overall, fix_fu)
+    }
+
+    inter_rst <- inter_rst %>%
+        mutate(n_stage2 = n_stage2,
+               tar_eve_stage2 = tar_eve_stage2) %>%
+        rename(inter_roverall = r_overall,
+               inter_r0       = r0,
+               inter_r1       = r1,
+               inter_k        = k)
+
+    ## final analysis dataset
+    data_final <- rcurrent_day_eos_adapt_2(
+        data,
+        n_stage1       = n_stage1,
+        n_stage2       = n_stage2,
+        tar_eve_stage2 = tar_eve_stage2,
+        rcur_info      = rcur_info,
+        fix_fu         = fix_fu)
+
+    data_final_nb <- rcurrent_get_nb(data_final)
+
+    ## return
+    list(data            = data,
+         interim_rst     = inter_rst,
+         data_interim    = data_interim,
+         data_interim_nb = data_interim_nb,
+         data_final      = data_final,
+         data_final_nb   = data_final_nb)
 }
