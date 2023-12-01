@@ -81,7 +81,6 @@ stb_tl_rc_pooled <- function(dat,
 }
 
 
-
 #' NB Regression
 #'
 #' NB Regression
@@ -98,20 +97,28 @@ stb_tl_rc_reg <- function(dat, fml = "y ~ offset(log(day_onstudy)) + arm") {
 
     r0          <- exp(mdl_coef[1, 1])
     hr          <- NA
+    loghr       <- NA
+    sd          <- NA
     pval_loghr  <- NA
 
     if (2 == nrow(mdl_coef)) {
-        hr          <- mdl_coef[2, 1]
+        hr          <- exp(mdl_coef[2, 1])
+        loghr       <- mdl_coef[2, 1]
+        sd          <- mdl_coef[2, 2]
         pval_loghr  <- mdl_coef[2, 4]
     }
 
-    para_est <- data.frame(r0   = r0,
-                           hr   = hr,
-                           pval = pval_loghr,
-                           k    = mdl_fit$theta)
+    para_est <- data.frame(r0    = r0,
+                           hr    = hr,
+                           loghr = loghr,
+                           sd    = sd,
+                           pval  = pval_loghr,
+                           k     = mdl_fit$theta)
 
     para_est
 }
+
+
 
 
 #' Minimal detectable difference
