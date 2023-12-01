@@ -8,8 +8,8 @@ rcurrent_day_eos_adapt_2(
   data_full,
   n_stage1,
   n_stage2 = 0,
-  tar_eve_stage2 = 0,
-  rcur_info = 0.2,
+  target_event = 0,
+  rcur_weight = 0.2,
   fix_fu = 12 * 7
 )
 }

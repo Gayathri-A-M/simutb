@@ -29,7 +29,7 @@ rcurrent_describe <- function(x, ...) {
     cat("    par_enroll:     list of enrollment parameters \n")
     cat("    n_stage1:       no. of patients for stage 1 (default 100) \n")
     cat("    fix_fu:         fixed FU days (default 12 * 7) \n")
-    cat("    rcur_info:      Information ratio in recurrent events (default 0.2) \n")
+    cat("    rcur_weight:    Information weight in recurrent events (default 0.2) \n")
     cat("    ssr_zone:       range of total size that will trigger sample size  \n")
     cat("                    adaptation (default c(1.2, 2))\n")
 
@@ -181,8 +181,8 @@ rcurrent_day_eos_adapt_1 <- function(data_full, n_stage1, fix_fu = 12 * 7) {
 rcurrent_day_eos_adapt_2 <- function(data_full,
                                      n_stage1,
                                      n_stage2       = 0,
-                                     tar_eve_stage2 = 0,
-                                     rcur_info      = 0.2,
+                                     target_event   = 0,
+                                     rcur_weight    = 0.2,
                                      fix_fu         = 12 * 7) {
 
     dat <- data_full %>%
@@ -207,19 +207,21 @@ rcurrent_day_eos_adapt_2 <- function(data_full,
                       by = c("arm" = "arm",
                              "sid" = "sid"))
 
-        ## last patient FU finished
+        ## last stage 1 patient FU finished
         date_eos_1 <- dat_stage2[n_stage1, "date_enroll"] + fix_fu
 
         ## target event observed
-        dat_stage2_target <- dat_stage2 %>%
+        dat_target <- data_full %>%
+            mutate(day_eos = day_enroll + fix_fu) %>%
+            filter(day_start <= day_eos) %>%
             arrange(day_end) %>%
-            mutate(nevent   = if_else(1 == inx, 1, rcur_info),
+            mutate(nevent   = if_else(1 == inx, 1, rcur_weight),
                    cumevent = cumsum(nevent)) %>%
-            filter(cumevent <= tar_eve_stage2) %>%
+            filter(cumevent <= target_event) %>%
             slice_tail(n = 1) %>%
             mutate(date_eos = date_bos + day_start + 1)
 
-        date_eos_2 <- dat_stage2_target[1, "date_eos"]
+        date_eos_2 <- dat_target[1, "date_eos"]
 
         ## make sure stage 1 patients have FU
         date_eos_12 <- max(date_eos_1, date_eos_2)
@@ -275,6 +277,44 @@ rcurrent_get_nb <- function(data_full) {
     rst
 }
 
+#' Calculate NB sample size based on survival analysis
+#'
+#' Calculate NB sample size based on logrank power and sample size calculation
+#'
+#' @param r0 hazard rate in control
+#' @param r1 hazard rate in treatment
+#' @param fu average follow up time on each pt
+#' @param rcur_weight information weight on recurrent events
+#'
+#'
+rcurrent_logrank_size <- function(r0, r1, fix_fu,
+                                  power       = 0.9,
+                                  rcur_weight = 0.2,
+                                  k           = 1,
+                                  alpha       = 0.05) {
+
+    z_alpha <- qnorm(1 - alpha / 2)
+    z_beta  <- qnorm(power)
+
+    ## total No. of events from logrank test
+    m <- ceiling(4 * (z_alpha + z_beta)^2 / (log(r1 / r0))^2)
+
+    ## calculate sample size per group
+    eys <- NULL
+    for (r01 in c(r0, r1)) {
+        cur_eys <- (1 - rcur_weight)
+        cur_eys <- cur_eys * (1 - dnbinom(0, size = k, mu = r01 * fix_fu))
+        cur_eys <- cur_eys + rcur_weight * r01 * fix_fu
+        eys     <- c(eys, cur_eys)
+    }
+
+    n <- ceiling(m / sum(eys))
+
+    c(n_events = m,
+      n_pts    = n * 2)
+}
+
+
 #' Rcurrent adaptive design
 #'
 #'
@@ -282,28 +322,16 @@ rcurrent_get_nb <- function(data_full) {
 #'
 rcurrent_adapt_ana_set <- function(data, lst_design) {
 
-    f_tar <- function(n, r, fu, rcur_info) {
-        r <- r * fu
-
-        if (r > 1) {
-            rst <- n * (1 + (r - 1) * rcur_info)
-        } else {
-            rst <- n * r
-        }
-
-        rst
-    }
-
     ## design parameters
-    hr        <- lst_design$hr_by_arm
-    fix_fu    <- lst_design$fix_fu
-    n_stage1  <- lst_design$n_stage1
-    alpha     <- lst_design$alpha
-    power     <- lst_design$power
-    k         <- lst_design$k_by_arm[1]
-    ssr_zone  <- lst_design$ssr_zone
-    rcur_info <- lst_design$rcur_info
-    hr        <- hr[2] / hr[1]
+    hr          <- lst_design$hr_by_arm
+    fix_fu      <- lst_design$fix_fu
+    n_stage1    <- lst_design$n_stage1
+    alpha       <- lst_design$alpha
+    power       <- lst_design$power
+    k           <- lst_design$k_by_arm[1]
+    ssr_zone    <- lst_design$ssr_zone
+    rcur_weight <- lst_design$rcur_weight
+    hr          <- hr[2] / hr[1]
 
     ## interim when all n_stage1 pts have been enrolled
     data_interim <- rcurrent_day_eos_adapt_1(data,
@@ -314,26 +342,29 @@ rcurrent_adapt_ana_set <- function(data, lst_design) {
 
     ## sample size re_estimated
     inter_rst  <- stb_tl_rc_pooled(data_interim_nb, hr = hr)
-    smp_size   <- stb_tl_rc_size(power,
-                                 fix_fu,
-                                 inter_rst$r0,
-                                 inter_rst$r1,
-                                 k,
-                                 alpha)
+    smp_size   <- rcurrent_logrank_size(
+        r0          = inter_rst$r0,
+        r1          = inter_rst$r1,
+        fix_fu      = fix_fu,
+        power       = power,
+        rcur_weight = rcur_weight,
+        k           = k,
+        alpha       = alpha)
 
-    ss_r <- smp_size / n_stage1
+    target_event <- smp_size["n_events"]
+    re_est_size  <- smp_size["n_pts"]
+
+    ss_r <- re_est_size / n_stage1
     if (ss_r < ssr_zone[1] |
         ss_r > ssr_zone[2]) {
-        n_stage2       <- 0
-        tar_eve_stage2 <- 0
+        n_stage2 <- 0
     } else {
-        n_stage2       <- smp_size - n_stage1
-        tar_eve_stage2 <- f_tar(n_stage2, inter_rst$r_overall, fix_fu)
+        n_stage2 <- re_est_size - n_stage1
     }
 
     inter_rst <- inter_rst %>%
-        mutate(n_stage2 = n_stage2,
-               tar_eve_stage2 = tar_eve_stage2) %>%
+        mutate(n_stage2      = n_stage2,
+               target_event  = target_event) %>%
         rename(inter_roverall = r_overall,
                inter_r0       = r0,
                inter_r1       = r1,
@@ -344,8 +375,8 @@ rcurrent_adapt_ana_set <- function(data, lst_design) {
         data,
         n_stage1       = n_stage1,
         n_stage2       = n_stage2,
-        tar_eve_stage2 = tar_eve_stage2,
-        rcur_info      = rcur_info,
+        target_event   = target_event,
+        rcur_weight    = rcur_weight,
         fix_fu         = fix_fu)
 
     data_final_nb <- rcurrent_get_nb(data_final)
