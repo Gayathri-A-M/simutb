@@ -510,6 +510,7 @@ stb_surv_join_arm_simu <- function(n,
                               hazard      = NULL,
                               annual_drop = annual_drop,
                               ...)
+
     dta_event  <- stb_surv_join_simu_events(n, simu_par)
     days       <- stb_tl_pfs_os(dta_event[, "t_prog"],
                                 dta_event[, "t_os"],

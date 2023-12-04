@@ -191,7 +191,9 @@ stb_tl_surv_logrank <- function(data,
     surv_diff <- coxph(fml, data = data)
     surv_sum  <- summary(surv_diff)
     pval_cox  <- unname(surv_sum$sctest[3])
-    hr        <- surv_sum$coefficients[, 2]
+
+    log_hr    <- unname(surv_sum$coefficients[, 1])
+    hr        <- unname(surv_sum$coefficients[, 2])
     se_log_hr <- unname(surv_sum$coefficients[, 3])
 
     ## zscore    <- surv_sum$coefficients[, 4]
@@ -218,6 +220,7 @@ stb_tl_surv_logrank <- function(data,
 
     ## return
     c(hr,
+      log_hr         = log_hr,
       se_log_hr      = se_log_hr,
       zscore         = zscore,
       pval_oneside   = pvalue,

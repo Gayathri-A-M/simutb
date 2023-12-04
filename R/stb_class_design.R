@@ -19,6 +19,7 @@
 ##     10: STB_DESIGN_DOSE_FIX
 ##     11: STB_DESIGN_COVID
 ##     12: STB_DESIGN_RCURRENT_ADAPT
+##     13: STB_DESIGN_SURV_BOR
 ##
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
@@ -46,22 +47,37 @@ stb_create_design <- function(type = c("surv_strat",
                                        "msma_surv",
                                        "dose_fix",
                                        "covid",
-                                       "rcurrent_adapt")) {
+                                       "rcurrent_adapt",
+                                       "surv_borrow")) {
 
     type <- match.arg(type)
     rst  <- switch(type,
+                   ## 1
                    surv_strat     = new("STB_DESIGN_STRAT_SURV"),
+                   ## 2
                    surv_or        = new("STB_DESIGN_SURV_OR"),
+                   ## 3
                    surv_join      = new("STB_DESIGN_SURV_JOIN"),
+                   ## 4
                    surv_biom      = new("STB_DESIGN_SURV_BIOM"),
+                   ## 5
                    bayes_1arm     = new("STB_DESIGN_BAYES_1ARM"),
+                   ## 6
                    bayes_2arm     = new("STB_DESIGN_BAYES_2ARM"),
+                   ## 7
                    rcurrent       = new("STB_DESIGN_RCURRENT"),
+                   ## 8
                    rmeasure       = new("STB_DESIGN_RMEASURE"),
+                   ## 9
                    msma_surv      = new("STB_DESIGN_MSMA_SURV"),
+                   ## 10
                    dose_fix       = new("STB_DESIGN_DOSE_FIX"),
+                   ## 11
                    covid          = new("STB_DESIGN_COVID"),
+                   ## 12
                    rcurrent_adapt = new("STB_DESIGN_RCURRENT_ADAPT"),
+                   ## 13
+                   surv_borrow    = new("STB_DESIGN_SURV_BOR"),
                    new("STB_DESIGN"))
 
     rst
@@ -69,7 +85,7 @@ stb_create_design <- function(type = c("surv_strat",
 
 
 ## -----------------------------------------------------------------------------
-##                        stratified survival
+##                        1. stratified survival
 ## -----------------------------------------------------------------------------
 setClass("STB_DESIGN_STRAT_SURV",
          contains = "STB_DESIGN")
@@ -100,7 +116,7 @@ setMethod("stb_generate_data",
 
 
 ## -----------------------------------------------------------------------------
-##                        oncology trial with OR
+##                    2. oncology trial with OR
 ## -----------------------------------------------------------------------------
 setClass("STB_DESIGN_SURV_OR",
          contains = "STB_DESIGN")
@@ -132,7 +148,7 @@ setMethod("stb_generate_data",
 
 
 ## -----------------------------------------------------------------------------
-##                        surival with joint PFS and OS
+##                 3. surival with joint PFS and OS
 ## -----------------------------------------------------------------------------
 setClass("STB_DESIGN_SURV_JOIN",
          contains = "STB_DESIGN")
@@ -224,7 +240,7 @@ setMethod("stb_simu_gen_key",
 
 
 ## -----------------------------------------------------------------------------
-##                        surival with arm dropping
+##                4. surival with arm dropping
 ## -----------------------------------------------------------------------------
 setClass("STB_DESIGN_SURV_BIOM",
          contains = "STB_DESIGN")
@@ -310,7 +326,7 @@ setMethod("stb_simu_gen_key",
 
 
 ## -----------------------------------------------------------------------------
-##                        bayesian 1- and 2-arm design
+##             5-6:  bayesian 1- and 2-arm design
 ## -----------------------------------------------------------------------------
 
 #'
@@ -403,7 +419,7 @@ setMethod("stb_set_default_para",
 
 
 ## -----------------------------------------------------------------------------
-##                        recurrent event
+##                      7. recurrent event
 ## -----------------------------------------------------------------------------
 
 #'
@@ -480,7 +496,7 @@ setMethod("stb_simu_gen_summary",
 
 
 ## -----------------------------------------------------------------------------
-##                        repeated measure
+##                       8. repeated measure
 ## -----------------------------------------------------------------------------
 
 #'
@@ -568,7 +584,7 @@ setMethod("stb_simu_gen_summary",
           })
 
 ## -----------------------------------------------------------------------------
-##                        msma with survival outcome
+##                      9. msma with survival outcome
 ## -----------------------------------------------------------------------------
 
 #'
@@ -615,7 +631,7 @@ setMethod("stb_simu_gen_summary",
 
 
 ## -----------------------------------------------------------------------------
-##                        Dose escaltion for FIX study
+##                     10. Dose escaltion for FIX study
 ## -----------------------------------------------------------------------------
 #'
 #' @export
@@ -681,7 +697,7 @@ setMethod("stb_simu_gen_summary",
 
 
 ## -----------------------------------------------------------------------------
-##                        COVID STUDIES
+##                      11. COVID STUDIES
 ## -----------------------------------------------------------------------------
 
 #'
@@ -762,7 +778,7 @@ setMethod("stb_simu_gen_summary",
 
 
 ## -----------------------------------------------------------------------------
-##                   recurrent event with adaptive sample size
+##                 12. recurrent event with adaptive sample size
 ## -----------------------------------------------------------------------------
 
 #'
@@ -806,4 +822,53 @@ setMethod("stb_analyze_data",
               rst$study_dur <- max(dat_final$date_eos) - max(dat_final$date_bos)
               rst           <- cbind(data_ana$interim_rst, rst)
               list(rst)
+          })
+
+
+## -----------------------------------------------------------------------------
+##              13. Bayesian survival with information borrowing
+## -----------------------------------------------------------------------------
+
+#' @export
+setClass("STB_DESIGN_SURV_BOR",
+         contains = "STB_DESIGN")
+
+setMethod("stb_describe",
+          "STB_DESIGN_SURV_BOR",
+          function(x, ...) {
+              callNextMethod()
+              surv_bor_describe(x, ...)
+          })
+
+setMethod("stb_set_default_para",
+          "STB_DESIGN_SURV_BOR",
+          function(x) {
+              surv_bor_default_para()
+          })
+
+setMethod("stb_generate_data",
+          "STB_DESIGN_SURV_BOR",
+          function(x, ...) {
+              surv_bor_gen_data(x@design_para, ...)
+          })
+
+setMethod("stb_analyze_data",
+          "STB_DESIGN_SURV_BOR",
+          function(x, data_ana, ...) {
+              data_final <- data_ana[[1]]
+              rst <- surv_bor_ana_data(data_final,
+                                       x@design_para$par_analysis,
+                                       ...)
+
+              list(rst)
+          })
+
+setMethod("stb_simu_gen_summary",
+          "STB_DESIGN_SURV_BOR",
+          function(x, lst, ...) {
+              rst <- list()
+              for (i in seq_len(length(lst)))
+                  rst[[i]] <- lst[[i]][[1]]
+
+              rbindlist(rst)
           })
