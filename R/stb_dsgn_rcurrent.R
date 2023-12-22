@@ -389,3 +389,70 @@ rcurrent_adapt_ana_set <- function(data, lst_design) {
          data_final      = data_final,
          data_final_nb   = data_final_nb)
 }
+
+
+#' Rcurrent sample size re-estimation
+#'
+#' This is based on a naive NB sample size re-estimation
+#'
+#' @export
+#'
+rcurrent_ssr_ana_set <- function(data, lst_design) {
+
+    ## design parameters
+    hr          <- lst_design$hr_by_arm
+    fix_fu      <- lst_design$fix_fu
+    n_stage1    <- lst_design$n_stage1
+    alpha       <- lst_design$alpha
+    power       <- lst_design$power
+    k           <- lst_design$k_by_arm[1]
+    ssr_zone    <- lst_design$ssr_zone
+    hr          <- hr[2] / hr[1]
+
+    ## interim when all n_stage1 pts have been enrolled
+    data_interim <- rcurrent_day_eos_adapt_1(data,
+                                             n_stage1 = n_stage1,
+                                             fix_fu   = fix_fu)
+
+    data_interim_nb <- rcurrent_get_nb(data_interim)
+
+    ## sample size re_estimated
+    inter_rst   <- stb_tl_rc_pooled(data_interim_nb, hr = hr)
+    re_est_size <- stb_tl_rc_size(power = power,
+                                  mu_t  = fix_fu,
+                                  r0    = inter_rst$r0,
+                                  r1    = inter_rst$r1,
+                                  k     = k,
+                                  alpha = alpha)
+
+    ss_r <- re_est_size / n_stage1
+    if (ss_r < ssr_zone[1] |
+        ss_r > ssr_zone[2]) {
+        n_stage2 <- 0
+    } else {
+        n_stage2 <- re_est_size - n_stage1
+    }
+
+    inter_rst <- inter_rst %>%
+        mutate(n_stage2       = n_stage2,
+               target_event   = NA) %>%
+        rename(inter_roverall = r_overall,
+               inter_r0       = r0,
+               inter_r1       = r1,
+               inter_k        = k)
+
+    ## final analysis dataset
+    data_final <- rcurrent_day_eos_adapt_1(data,
+                                           n_stage1 + n_stage2,
+                                           fix_fu = fix_fu)
+
+    data_final_nb <- rcurrent_get_nb(data_final)
+
+    ## return
+    list(data            = data,
+         interim_rst     = inter_rst,
+         data_interim    = data_interim,
+         data_interim_nb = data_interim_nb,
+         data_final      = data_final,
+         data_final_nb   = data_final_nb)
+}

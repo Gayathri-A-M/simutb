@@ -20,6 +20,7 @@
 ##     11: STB_DESIGN_COVID
 ##     12: STB_DESIGN_RCURRENT_ADAPT
 ##     13: STB_DESIGN_SURV_BOR
+##     14: STB_DESIGN_RECURRENT_SSR
 ##
 ## -----------------------------------------------------------------------------
 ## -----------------------------------------------------------------------------
@@ -48,7 +49,8 @@ stb_create_design <- function(type = c("surv_strat",
                                        "dose_fix",
                                        "covid",
                                        "rcurrent_adapt",
-                                       "surv_borrow")) {
+                                       "surv_borrow",
+                                       "rcurrent_ssr")) {
 
     type <- match.arg(type)
     rst  <- switch(type,
@@ -78,6 +80,8 @@ stb_create_design <- function(type = c("surv_strat",
                    rcurrent_adapt = new("STB_DESIGN_RCURRENT_ADAPT"),
                    ## 13
                    surv_borrow    = new("STB_DESIGN_SURV_BOR"),
+                   ## 14
+                   rcurrent_ssr   = new("STB_DESIGN_RCURRENT_SSR"),
                    new("STB_DESIGN"))
 
     rst
@@ -819,7 +823,7 @@ setMethod("stb_analyze_data",
 
               ## sample size and duration
               rst$study_n   <- length(unique(dat_final$sid))
-              rst$study_dur <- max(dat_final$date_eos) - max(dat_final$date_bos)
+              rst$study_dur <- max(dat_final$date_eos) - min(dat_final$date_bos)
               rst           <- cbind(data_ana$interim_rst, rst)
               list(rst)
           })
@@ -871,4 +875,27 @@ setMethod("stb_simu_gen_summary",
                   rst[[i]] <- lst[[i]][[1]]
 
               rbindlist(rst)
+          })
+
+## -----------------------------------------------------------------------------
+##                 14. recurrent event with sample size reestimation
+## -----------------------------------------------------------------------------
+
+#'
+#' @export
+#'
+setClass("STB_DESIGN_RCURRENT_SSR",
+         contains = "STB_DESIGN_RCURRENT_ADAPT")
+
+#'
+#' @export
+#'
+setMethod("stb_create_analysis_set",
+          "STB_DESIGN_RCURRENT_ADAPT",
+          function(x, data, ...) {
+
+              if (is.null(data))
+                  return(NULL)
+
+              rcurrent_ssr_ana_set(data, x@design_para)
           })

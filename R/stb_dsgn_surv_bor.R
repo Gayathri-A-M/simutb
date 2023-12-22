@@ -29,7 +29,7 @@ surv_bor_describe <- function(x, ...) {
     cat("                    for each endpoint. default c(12, 12) \n")
     cat("    hr:             hazard ratio (treatment vs. control) for\n")
     cat("                    each endpoint. default c(0.7, 0.7)\n")
-    cat("    target_event:   target number of event for the first endpoint\n")
+    cat("    target_primary: target number of event for the first endpoint\n")
     cat("                    (default 20)\n")
     cat("    annual_drop:    annual dropout rate (default 0.000001) \n")
     cat("    date_bos:       begin of study date\n")
