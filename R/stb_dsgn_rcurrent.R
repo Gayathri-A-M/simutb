@@ -238,6 +238,30 @@ rcurrent_day_eos_adapt_2 <- function(data_full,
 }
 
 
+#' Generate analysis data set
+#'
+#' Generate final analysis dataset for all patients with fixed fu
+#'
+#'
+rcurrent_day_eos_adapt_3 <- function(data_full, n, fix_fu = 12 * 7) {
+
+    dat <- data_full %>%
+        select(arm, sid, date_enroll) %>%
+        distinct() %>%
+        arrange(date_enroll) %>%
+        slice(1:n) %>%
+        select(-date_enroll) %>%
+        left_join(data_full,
+                  by = c("arm" = "arm", "sid" = "sid"))
+
+    rst <- dat %>%
+        mutate(date_eos = date_enroll + fix_fu,
+               day_eos  = as.numeric(date_eos - date_bos)) %>%
+        rcurrent_censor()
+
+    rst
+}
+
 
 #' Generate censoring data
 #'
@@ -442,7 +466,7 @@ rcurrent_ssr_ana_set <- function(data, lst_design) {
                inter_k        = k)
 
     ## final analysis dataset
-    data_final <- rcurrent_day_eos_adapt_1(data,
+    data_final <- rcurrent_day_eos_adapt_3(data,
                                            n_stage1 + n_stage2,
                                            fix_fu = fix_fu)
 

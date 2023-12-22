@@ -891,7 +891,7 @@ setClass("STB_DESIGN_RCURRENT_SSR",
 #' @export
 #'
 setMethod("stb_create_analysis_set",
-          "STB_DESIGN_RCURRENT_ADAPT",
+          "STB_DESIGN_RCURRENT_SSR",
           function(x, data, ...) {
 
               if (is.null(data))
