@@ -208,7 +208,7 @@ rcurrent_day_eos_adapt_2 <- function(data_full,
                              "sid" = "sid"))
 
         ## last stage 1 patient FU finished
-        date_eos_1 <- dat_stage1[n_stage1, "date_enroll"] + fix_fu
+        date_eos_1 <- dat_stage1[n_stage1, "date_enroll"] + fix_fu + 1
 
         ## target event observed
         dat_target <- data_full %>%
