@@ -825,6 +825,7 @@ setMethod("stb_analyze_data",
               rst$study_n   <- length(unique(dat_final$sid))
               rst$study_dur <- max(dat_final$date_eos) - min(dat_final$date_bos)
               rst           <- cbind(data_ana$interim_rst, rst)
+
               list(rst)
           })
 
