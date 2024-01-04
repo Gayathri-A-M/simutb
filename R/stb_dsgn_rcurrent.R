@@ -50,7 +50,7 @@ internal_rcurrent_dpara <- function() {
          power             = 0.9,
          n_stage1          = 100,
          fix_fu            = 12 * 7,
-         rcur_info         = 0.2,
+         rcur_weight       = 0.2,
          ssr_zone          = c(1.2, 2)
          )
 }
@@ -324,18 +324,14 @@ rcurrent_logrank_size <- function(r0, r1, fix_fu,
     m <- ceiling(4 * (z_alpha + z_beta)^2 / (log(r1 / r0))^2)
 
     ## calculate sample size per group
-    eys <- NULL
-    for (r01 in c(r0, r1)) {
-        cur_eys <- (1 - rcur_weight)
-        cur_eys <- cur_eys * (1 - dnbinom(0, size = k, mu = r01 * fix_fu))
-        cur_eys <- cur_eys + rcur_weight * r01 * fix_fu
-        eys     <- c(eys, cur_eys)
-    }
-
-    n <- ceiling(m / sum(eys))
+    eys_0 <- rcur_eff_event(r0 * fix_fu, k, rcur_weight)
+    eys_1 <- rcur_eff_event(r1 * fix_fu, k, rcur_weight)
+    n     <- ceiling(m / (eys_0 + eys_1))
 
     c(n_events = m,
-      n_pts    = n * 2)
+      n_pts    = n * 2,
+      eys_0    = eys_0,
+      eys_1    = eys_1)
 }
 
 
@@ -479,4 +475,70 @@ rcurrent_ssr_ana_set <- function(data, lst_design) {
          data_interim_nb = data_interim_nb,
          data_final      = data_final,
          data_final_nb   = data_final_nb)
+}
+
+
+#' Effective number of events
+#'
+#' Calculate effective number of events for recurrent events
+#'
+#' @export
+#'
+rcur_eff_event <- function(nb_mu, nb_k, weight = 0.2) {
+    eys <- weight * nb_mu +
+        (1 - weight) * (1 - dnbinom(0, size = nb_k, mu = nb_mu))
+
+    eys
+}
+
+#' Effective number of events
+#'
+#' Calculate effective number of events for recurrent events
+#'
+#' @export
+#'
+rcur_eff_event_dta <- function(dta, weight = 0.2) {
+    rst <- dta %>%
+        mutate(n_event = case_when(
+                   censor == 1 ~ 0,
+                   censor == 0 & inx == 1 ~ 1,
+                   censor == 0 & inx > 1  ~ weight)) %>%
+        group_by(arm, sid) %>%
+        summarize(n_event = sum(n_event)) %>%
+        group_by(arm) %>%
+        summarize(total_event = sum(n_event),
+                  event_rate  = mean(n_event))
+
+    c(unlist(rst$total_event),
+      unlist(rst$event_rate))
+}
+
+#' Final analysis
+#'
+#' Final analysis
+#'
+#' @export
+#'
+rcurrent_adapt_ana <- function(data_ana, lst_design) {
+    dat_final    <- data_ana$data_final
+    dat_final_nb <- data_ana$data_final_nb
+    rst          <- stb_tl_rc_reg(dat_final_nb)
+
+    ## effective number of events
+    eff_nevent   <- rcur_eff_event_dta(dat_final,
+                                       weight = lst_design$rcur_weight)
+
+    ## sample size and duration
+    rst$study_n   <- length(unique(dat_final$sid))
+    rst$study_dur <- max(dat_final$date_eos) - min(dat_final$date_bos)
+
+    rst$event_ctl      <- eff_nevent[1]
+    rst$event_trt      <- eff_nevent[2]
+    rst$event_total    <- sum(eff_nevent[1:2])
+    rst$event_rate_ctl <- eff_nevent[3]
+    rst$event_rate_trt <- eff_nevent[4]
+
+    ## return
+    rst <- cbind(data_ana$interim_rst,
+                 rst)
 }

@@ -817,15 +817,7 @@ setMethod("stb_analyze_data",
           "STB_DESIGN_RCURRENT_ADAPT",
           function(x, data_ana) {
 
-              dat_final    <- data_ana$data_final
-              dat_final_nb <- data_ana$data_final_nb
-              rst          <- stb_tl_rc_reg(dat_final_nb)
-
-              ## sample size and duration
-              rst$study_n   <- length(unique(dat_final$sid))
-              rst$study_dur <- max(dat_final$date_eos) - min(dat_final$date_bos)
-              rst           <- cbind(data_ana$interim_rst, rst)
-
+              rst <- rcurrent_adapt_ana(data_ana, x@design_para)
               list(rst)
           })
 
