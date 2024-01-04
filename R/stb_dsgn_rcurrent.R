@@ -190,36 +190,44 @@ rcurrent_day_eos_adapt_2 <- function(data_full,
         distinct() %>%
         arrange(date_enroll)
 
+    ## stage 1 patients
     dat_stage1 <- dat %>%
         slice(1:n_stage1) %>%
         select(-date_enroll) %>%
         left_join(data_full,
                   by = c("arm" = "arm", "sid" = "sid"))
 
+    ## last stage 1 patient FU finished
+    date_eos_1 <- max(dat_stage1$date_enroll) + fix_fu + 1
+
     if (0 == n_stage2) {
         dat_stage2  <- NULL
-        date_eos_12 <- max(dat_stage1$date_enroll + fix_fu) + 1
+        date_eos_12 <- date_eos_1
     } else {
         dat_stage2 <- dat %>%
-            slice(n_stage1 + 1:n_stage2) %>%
+            slice(n_stage1 + (1:n_stage2)) %>%
             select(-date_enroll) %>%
             left_join(data_full,
                       by = c("arm" = "arm",
                              "sid" = "sid"))
 
-        ## last stage 1 patient FU finished
-        date_eos_1 <- max(dat_stage1$date_enroll) + fix_fu + 1
-
         ## target event observed
-        dat_target <- data_full %>%
+        dat_target <- dat %>%
+            slice(1:(n_stage1 + n_stage2)) %>%
+            select(-date_enroll) %>%
+            left_join(data_full,
+                      by = c("arm" = "arm",
+                             "sid" = "sid")) %>%
             mutate(day_eos = day_enroll + fix_fu) %>%
-            filter(day_start <= day_eos) %>%
+            filter(day_end <= day_eos) %>%
             arrange(day_end) %>%
-            mutate(nevent   = if_else(1 == inx, 1, rcur_weight),
+            mutate(nevent = case_when(
+                       inx == 1 ~ 1,
+                       inx >  1 ~ rcur_weight),
                    cumevent = cumsum(nevent)) %>%
-            filter(cumevent <= target_event) %>%
+            filter(cumevent < target_event + 1) %>%
             slice_tail(n = 1) %>%
-            mutate(date_eos = date_bos + day_start + 1)
+            mutate(date_eos = date_bos + day_end + 1)
 
         date_eos_2 <- dat_target[1, "date_eos"]
 
