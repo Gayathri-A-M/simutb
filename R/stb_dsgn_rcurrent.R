@@ -203,6 +203,7 @@ rcurrent_day_eos_adapt_2 <- function(data_full,
     if (0 == n_stage2) {
         dat_stage2  <- NULL
         date_eos_12 <- date_eos_1
+        reason_eos  <- 0 # no re-estimation
     } else {
         dat_stage2 <- dat %>%
             slice(n_stage1 + (1:n_stage2)) %>%
@@ -212,7 +213,7 @@ rcurrent_day_eos_adapt_2 <- function(data_full,
                              "sid" = "sid"))
 
         ## target event observed
-        dat_target <- dat %>%
+        dat_target_temp <- dat %>%
             slice(1:(n_stage1 + n_stage2)) %>%
             select(-date_enroll) %>%
             left_join(data_full,
@@ -221,18 +222,34 @@ rcurrent_day_eos_adapt_2 <- function(data_full,
             mutate(day_eos = day_enroll + fix_fu) %>%
             filter(day_end <= day_eos) %>%
             arrange(day_end) %>%
-            mutate(nevent = case_when(
-                       inx == 1 ~ 1,
-                       inx >  1 ~ rcur_weight),
-                   cumevent = cumsum(nevent)) %>%
-            filter(cumevent < target_event + 1) %>%
-            slice_tail(n = 1) %>%
-            mutate(date_eos = date_bos + day_end + 1)
+            mutate(nevent   = case_when(inx == 1 ~ 1,
+                                        inx >  1 ~ rcur_weight),
+                   cumevent = cumsum(nevent))
 
-        date_eos_2 <- dat_target[1, "date_eos"]
+        dat_target_filter <- dat_target_temp %>%
+            filter(cumevent >= target_event)
 
-        ## make sure stage 1 patients have FU
-        date_eos_12 <- max(date_eos_1, date_eos_2)
+        if (0 == nrow(dat_target_filter)) {
+            dat_target <- dat_target_temp %>%
+                slice_tail(n = 1) %>%
+                mutate(date_eos = date_bos + day_end + 1)
+
+            date_eos_2  <- dat_target[1, "date_eos"]
+            date_eos_12 <- date_eos_2
+            reason_eos  <- 1 # both stages finish fu
+        } else {
+            dat_target <- dat_target_filter %>%
+                slice(1) %>%
+                mutate(date_eos = date_bos + day_end + 1)
+
+            date_eos_2 <- dat_target[1, "date_eos"]
+
+            ## make sure stage 1 patients have FU
+            date_eos_12 <- max(date_eos_1, date_eos_2)
+            reason_eos <- if_else(date_eos_12 == date_eos_1,
+                                  2, # stage 1 finishes FU
+                                  3) # target no. are reached
+        }
     }
 
     rst <- rbind(dat_stage1, dat_stage2) %>%
@@ -243,6 +260,10 @@ rcurrent_day_eos_adapt_2 <- function(data_full,
                                     date_eos_2),
                day_eos    = as.numeric(date_eos - date_bos)) %>%
         rcurrent_censor()
+
+    ## return
+    list(data       = rst,
+         reason_eos = reason_eos)
 }
 
 
@@ -407,15 +428,16 @@ rcurrent_adapt_ana_set <- function(data, lst_design) {
         rcur_weight    = rcur_weight,
         fix_fu         = fix_fu)
 
-    data_final_nb <- rcurrent_get_nb(data_final)
+    data_final_nb <- rcurrent_get_nb(data_final$data)
 
     ## return
     list(data            = data,
          interim_rst     = inter_rst,
          data_interim    = data_interim,
          data_interim_nb = data_interim_nb,
-         data_final      = data_final,
-         data_final_nb   = data_final_nb)
+         data_final      = data_final$data,
+         data_final_nb   = data_final_nb,
+         reason_eos      = data_final$reason_eos)
 }
 
 
@@ -482,7 +504,8 @@ rcurrent_ssr_ana_set <- function(data, lst_design) {
          data_interim    = data_interim,
          data_interim_nb = data_interim_nb,
          data_final      = data_final,
-         data_final_nb   = data_final_nb)
+         data_final_nb   = data_final_nb,
+         reason_eos      = NA)
 }
 
 
@@ -545,6 +568,7 @@ rcurrent_adapt_ana <- function(data_ana, lst_design) {
     rst$event_total    <- sum(eff_nevent[1:2])
     rst$event_rate_ctl <- eff_nevent[3]
     rst$event_rate_trt <- eff_nevent[4]
+    rst$reason_eos     <- data_ana$reason_eos
 
     ## return
     rst <- cbind(data_ana$interim_rst,
