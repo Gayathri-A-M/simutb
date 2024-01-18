@@ -51,8 +51,8 @@ internal_rcurrent_dpara <- function() {
          n_stage1          = 100,
          fix_fu            = 12 * 7,
          rcur_weight       = 0.2,
-         ssr_zone          = c(1.2, 2)
-         )
+         ssr_zone          = c(1.2, 2),
+         method_samplesize = "EAST")
 }
 
 #' Generate data
@@ -406,9 +406,13 @@ rcurrent_adapt_ana_set <- function(data, lst_design) {
     ss_r <- re_est_size / n_stage1
     if (ss_r < ssr_zone[1] |
         ss_r > ssr_zone[2]) {
-        n_stage2 <- 0
+        n_stage2        <- 0
+        reason_no_reest <- ifelse(ss_r < ssr_zone[1],
+                                  1, # due to low ss
+                                  2) # due to high ss
     } else {
-        n_stage2 <- re_est_size - n_stage1
+        n_stage2        <- re_est_size - n_stage1
+        reason_no_reest <- 0 # re-estimate
     }
 
     inter_rst <- inter_rst %>%
@@ -437,7 +441,8 @@ rcurrent_adapt_ana_set <- function(data, lst_design) {
          data_interim_nb = data_interim_nb,
          data_final      = data_final$data,
          data_final_nb   = data_final_nb,
-         reason_eos      = data_final$reason_eos)
+         reason_eos      = data_final$reason_eos,
+         reason_no_reest = reason_no_reest)
 }
 
 
@@ -456,6 +461,7 @@ rcurrent_ssr_ana_set <- function(data, lst_design) {
     alpha       <- lst_design$alpha
     power       <- lst_design$power
     k           <- lst_design$k_by_arm[1]
+    method      <- lst_design$method_samplesize
     ssr_zone    <- lst_design$ssr_zone
     hr          <- hr[2] / hr[1]
 
@@ -468,19 +474,24 @@ rcurrent_ssr_ana_set <- function(data, lst_design) {
 
     ## sample size re_estimated
     inter_rst   <- stb_tl_rc_pooled(data_interim_nb, hr = hr)
-    re_est_size <- stb_tl_rc_size(power = power,
-                                  mu_t  = fix_fu,
-                                  r0    = inter_rst$r0,
-                                  r1    = inter_rst$r1,
-                                  k     = k,
-                                  alpha = alpha)
+    re_est_size <- stb_tl_rc_size(power  = power,
+                                  mu_t   = fix_fu,
+                                  r0     = inter_rst$r0,
+                                  r1     = inter_rst$r1,
+                                  k      = k,
+                                  alpha  = alpha,
+                                  method = method)
 
     ss_r <- re_est_size / n_stage1
     if (ss_r < ssr_zone[1] |
         ss_r > ssr_zone[2]) {
-        n_stage2 <- 0
+        n_stage2        <- 0
+        reason_no_reest <- ifelse(ss_r < ssr_zone[1],
+                                  1, # due to low ss
+                                  2) # due to high ss
     } else {
-        n_stage2 <- re_est_size - n_stage1
+        n_stage2        <- re_est_size - n_stage1
+        reason_no_reest <- 0 # re-estimate
     }
 
     inter_rst <- inter_rst %>%
@@ -505,7 +516,8 @@ rcurrent_ssr_ana_set <- function(data, lst_design) {
          data_interim_nb = data_interim_nb,
          data_final      = data_final,
          data_final_nb   = data_final_nb,
-         reason_eos      = NA)
+         reason_eos      = NA,
+         reason_no_reest = reason_no_reest)
 }
 
 
@@ -535,13 +547,23 @@ rcur_eff_event_dta <- function(dta, weight = 0.2) {
                    censor == 0 & inx == 1 ~ 1,
                    censor == 0 & inx > 1  ~ weight)) %>%
         group_by(arm, sid) %>%
-        summarize(n_event = sum(n_event)) %>%
+        summarize(n_event        = sum(n_event),
+                  n_1st_event    = sum(censor == 0 & inx == 1),
+                  n_ge_2nd_event = sum(censor == 0 & inx > 1)) %>%
         group_by(arm) %>%
-        summarize(total_event = sum(n_event),
-                  event_rate  = mean(n_event))
+        summarize(total_event        = sum(n_event),
+                  total_1st_event    = sum(n_1st_event),
+                  total_ge_2nd_event = sum(n_ge_2nd_event),
+                  event_rate         = mean(n_event),
+                  event_rate_1st     = mean(n_1st_event),
+                  event_rate_ge_2nd  = mean(n_ge_2nd_event))
 
     c(unlist(rst$total_event),
-      unlist(rst$event_rate))
+      unlist(rst$total_1st_event),
+      unlist(rst$total_ge_2nd_event),
+      unlist(rst$event_rate),
+      unlist(rst$event_rate_1st),
+      unlist(rst$event_rate_ge_2nd))
 }
 
 #' Final analysis
@@ -563,12 +585,24 @@ rcurrent_adapt_ana <- function(data_ana, lst_design) {
     rst$study_n   <- length(unique(dat_final$sid))
     rst$study_dur <- max(dat_final$date_eos) - min(dat_final$date_bos)
 
-    rst$event_ctl      <- eff_nevent[1]
-    rst$event_trt      <- eff_nevent[2]
-    rst$event_total    <- sum(eff_nevent[1:2])
-    rst$event_rate_ctl <- eff_nevent[3]
-    rst$event_rate_trt <- eff_nevent[4]
-    rst$reason_eos     <- data_ana$reason_eos
+    rst$event_ctl             <- eff_nevent[1]
+    rst$event_trt             <- eff_nevent[2]
+    rst$event_1st_ctl         <- eff_nevent[3]
+    rst$event_1st_trt         <- eff_nevent[4]
+    rst$event_ge_2nd_ctl      <- eff_nevent[5]
+    rst$event_ge_2nd_trt      <- eff_nevent[6]
+    rst$event_total           <- sum(eff_nevent[1:2])
+    rst$event_1st_total       <- sum(eff_nevent[3:4])
+    rst$event_ge_2nd_total    <- sum(eff_nevent[5:6])
+    rst$event_rate_ctl        <- eff_nevent[7]
+    rst$event_rate_trt        <- eff_nevent[8]
+    rst$event_rate_1st_ctl    <- eff_nevent[9]
+    rst$event_rate_1st_trt    <- eff_nevent[10]
+    rst$event_rate_ge_2nd_ctl <- eff_nevent[11]
+    rst$event_rate_ge_2nd_trt <- eff_nevent[12]
+    rst$reason_eos            <- data_ana$reason_eos
+    rst$reason_no_reest       <- data_ana$reason_no_reest
+
 
     ## return
     rst <- cbind(data_ana$interim_rst,

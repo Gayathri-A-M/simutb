@@ -26,8 +26,8 @@
 #'
 stb_tl_rc_power <- function(n, mu_t, r0, r1, k = 1, alpha = 0.05) {
 
-    v_0 <- 2 / mu_t / r0 + 2 * k
-    v_1 <- (1 / r0 + 1 / r1) / mu_t + 2 * k
+    v_0 <- 2 / mu_t / r0 + 2 / k
+    v_1 <- (1 / r0 + 1 / r1) / mu_t + 2 / k
 
     ss  <- sqrt(n / 2) * log(r0 / r1)
     ss  <- ss - sqrt(v_0) * qnorm(1 - alpha / 2)
@@ -43,16 +43,27 @@ stb_tl_rc_power <- function(n, mu_t, r0, r1, k = 1, alpha = 0.05) {
 #'
 #' @export
 #'
-stb_tl_rc_size <- function(power, mu_t, r0, r1, k = 1, alpha = 0.05) {
+stb_tl_rc_size <- function(power, mu_t, r0, r1, k = 1,
+                           alpha  = 0.05,
+                           method = c("EAST", "Zhu")) {
 
-    v_0 <- 2 / mu_t / r0 + 2 * k
-    v_1 <- (1 / r0 + 1 / r1) / mu_t + 2 * k
+    method  <- match.arg(method)
+    z_beta  <- qnorm(power)
+    z_alpha <- qnorm(1 - alpha / 2)
 
-    ss  <- qnorm(power)
-    ss  <- ss * sqrt(v_1)
-    ss  <- ss +  sqrt(v_0) * qnorm(1 - alpha / 2)
-    ss  <- ss / log(r0 / r1)
-    n   <- 2 * ss^2
+    if ("EAST" == method){
+        ss <- (z_beta + z_alpha) / log(r0/r1)
+        ss <- ss^2 * ((r0 + r1) / r0 / r1 /mu_t + 2 / k)
+        n  <- ss * 2
+    } else if ("Zhu" == method) {
+        v_0 <- 2 / mu_t / r0 + 2 / k
+        v_1 <- (1 / r0 + 1 / r1) / mu_t + 2 / k
+        ss  <- z_beta
+        ss  <- ss * sqrt(v_1)
+        ss  <- ss +  sqrt(v_0) * z_alpha
+        ss  <- ss / log(r0 / r1)
+        n   <- 2 * ss^2
+    }
 
     ceiling(n)
 }
